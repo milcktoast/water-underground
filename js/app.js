@@ -68,13 +68,14 @@ var App = (function() {
 		x0, y0, z0, v0,
 		x1, y1, z1, v1;
 
-		for ( longitude = 0; longitude <= Math.PI * 2; longitude += Math.PI/30 ) {
+		lineGeom = new THREE.Geometry();
+
+		for ( longitude = 0; longitude <= Math.PI * 2; longitude += Math.PI/18 ) {
 
 			inclat = 0;
 
 			for ( latitude = 0; latitude <= Math.PI; latitude += Math.PI/18 ) {
 
-				lineGeom = new THREE.Geometry();
 
 				x0 = lineRadius * Math.cos( longitude ) * Math.sin( latitude );
 				z0 = lineRadius * Math.sin( longitude ) * Math.sin( latitude );
@@ -85,15 +86,14 @@ var App = (function() {
 				y1 = (lineRadius - lineLength) * Math.cos( latitude );
 
 				v0 = new THREE.Vector3( x0, y0, z0 );
-				v1 = new THREE.Vector3( x1, y1, z1 );
+				//v1 = new THREE.Vector3( x1, y1, z1 );
 
 				lineGeom.vertices.push( new THREE.Vertex( v0 ) );
-				lineGeom.vertices.push( new THREE.Vertex( v1 ) );
+				//lineGeom.vertices.push( new THREE.Vertex( v1 ) );
 
-				line = new THREE.Line( lineGeom, lineMat );
-				line.visible = inclat % 2 == 0 && inclon % 3 == 0;
+				//line.visible = inclat % 2 == 0 && inclon % 3 == 0;
 
-				ticks.add( line );
+				//ticks.add( line );
 
 				inclat ++;
 				//lineGeometry.vertices.push( new THREE.Vertex( vector ) );						 
@@ -101,6 +101,9 @@ var App = (function() {
 
 			inclon ++;
 		}
+
+		line = new THREE.Line( lineGeom, lineMat );
+		ticks.add( line );
 
 		globe.rotation.x = 0.5;
 		globe.rotation.z = 0.5;
