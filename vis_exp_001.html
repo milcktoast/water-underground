@@ -12,6 +12,39 @@
 	<script type="text/javascript" src="../three.js/examples/js/RequestAnimationFrame.js"></script>
 	<script type="text/javascript" src="../three.js/examples/js/Stats.js"></script>
 
+	<script id="vs" type="x-shader/x-vertex">
+
+	uniform float dispX;
+	uniform float dispY;
+	uniform float dispZ;
+//	uniform float amount;
+	attribute float displacement;
+	
+//	varying float disp;
+
+	 void main() {
+
+		//vec3 pos = vec3( position.x + dispX, position.y + dispY, position.z + dispZ );
+
+		gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * - displacement ), 1.0 );
+
+	 }
+
+	</script>
+
+	<script id="fs" type="x-shader/x-fragment">
+
+	uniform float dispZ;
+
+	void main() {
+
+		float depth = gl_FragCoord.z; // / gl_FragCoord.w;
+		gl_FragColor = vec4( 0.0, 0.0, 1.0, smoothstep( - 1.0, 2.5, depth ) );
+
+	 }
+
+	</script>
+
 	<script type="text/javascript" src="js/app.js"></script>
 
 	<script type="text/javascript" src="http://dl.dropbox.com/u/18230908/GRACE_data.js/GRACE.LatLon.js"></script>

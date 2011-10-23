@@ -2,14 +2,15 @@
 var App = (function() {
 	var	app, data = {},
 
-		camera, scene, renderer, sun, ticks,
+		camera, scene, renderer, sun,
+		ptclSys, matAtts,
 		globe = new THREE.Object3D();
 		bounce = 0;
 
 //	Init
 	(function() {
 	var	y, m, yr, 
-		ambientLight, lineMat;
+		ambientLight;
 
 		//	Initialize null data object
 		for( y = 2002; y <= 2011; y++ ) {
@@ -26,7 +27,7 @@ var App = (function() {
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
 
-		camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1400, 3000 );
+		camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1000, 3000 );
 		camera.position.z = 1400;
 
 		scene = new THREE.Scene();
@@ -49,66 +50,85 @@ var App = (function() {
 		container.appendChild( stats.domElement );
 
 		//	Geometry
-		lineMat = new THREE.LineBasicMaterial({
-			opacity: .8, linewidth: 1,
-			depthTest: false,
-			blending: THREE.AdditiveBlending,
-			transparent : true
-		});
-		lineMat.color.setHSV( 1, 0, 0.45 );
-
-		ticks = new THREE.Object3D;
-
-	var	longitude, latitude, lineGeom, lineLength, line,
+	var	longitude, latitude,
+		ptclGeom, ptclMat,
 		inclat, inclon = 0,
 
-		lineLength = 15,
-		lineRadius = 480,
+		lineLength,
+		radius = 480,
 
 		x0, y0, z0, v0,
 		x1, y1, z1, v1;
 
-		for ( longitude = 0; longitude <= Math.PI * 2; longitude += Math.PI/30 ) {
+/*
+		ptclMat = new THREE.ParticleBasicMaterial({
+			size: 0.5,
+			blending: THREE.AdditiveBlending,
+			opacity: 0.8,
+			transparent: true
+		});
+		ptclMat.color.setHSV( 1, 0, 0.45 );
+*/
 
-			inclat = 0;
+		matAtts = {
+			displacement : { type: 'f', value: [] }
+		}
+		ptclMat = new THREE.ShaderMaterial( {
+			attributes : matAtts,
+			uniforms: {
 
-			for ( latitude = 0; latitude <= Math.PI; latitude += Math.PI/18 ) {
+				"dispX": { type: "f", value: 0 },
+				"dispY": { type: "f", value: 0 },
+				"dispZ": { type: "f", value: 0 },
+				"amount": { type: "f", value: 0 }
 
-				lineGeom = new THREE.Geometry();
+			},
+			vertexShader: document.getElementById( 'vs' ).textContent,
+			fragmentShader: document.getElementById( 'fs' ).textContent,
 
-				x0 = lineRadius * Math.cos( longitude ) * Math.sin( latitude );
-				z0 = lineRadius * Math.sin( longitude ) * Math.sin( latitude );
-				y0 = lineRadius * Math.cos( latitude );
+			depthTest: false
+		});
 
-				x1 = (lineRadius - lineLength) * Math.cos( longitude ) * Math.sin( latitude );
-				z1 = (lineRadius - lineLength) * Math.sin( longitude ) * Math.sin( latitude );
-				y1 = (lineRadius - lineLength) * Math.cos( latitude );
+
+		ptclGeom = new THREE.Geometry();
+		var	dispAtt = matAtts.displacement.value;
+
+		for ( longitude = 0; longitude < Math.PI * 2; longitude += Math.PI/180 ) {
+
+			//inclat = 0;
+
+			for ( latitude = 0; latitude < Math.PI; latitude += Math.PI/180 ) {
+
+				x0 = radius * Math.cos( longitude ) * Math.sin( latitude );
+				z0 = radius * Math.sin( longitude ) * Math.sin( latitude );
+				y0 = radius * Math.cos( latitude );
+
+				//x1 = (radius - lineLength) * Math.cos( longitude ) * Math.sin( latitude );
+				//z1 = (radius - lineLength) * Math.sin( longitude ) * Math.sin( latitude );
+				//y1 = (radius - lineLength) * Math.cos( latitude );
 
 				v0 = new THREE.Vector3( x0, y0, z0 );
-				v1 = new THREE.Vector3( x1, y1, z1 );
+				//v1 = new THREE.Vector3( x1, y1, z1 );
 
-				lineGeom.vertices.push( new THREE.Vertex( v0 ) );
-				lineGeom.vertices.push( new THREE.Vertex( v1 ) );
+				ptclGeom.vertices.push( new THREE.Vertex( v0 ) );
+				dispAtt.push( Math.random() * 50 );
 
-				line = new THREE.Line( lineGeom, lineMat );
-				line.visible = inclat % 2 == 0 && inclon % 3 == 0;
-
-				ticks.add( line );
-
-				inclat ++;
-				//lineGeometry.vertices.push( new THREE.Vertex( vector ) );						 
+				//inclat ++;
 			}
 
 			inclon ++;
 		}
 
+		console.log( matAtts );
+
+		ptclSys = new THREE.ParticleSystem( ptclGeom, ptclMat );
+		//ptclSys.sortParticles = true;
+
 		globe.rotation.x = 0.5;
 		globe.rotation.z = 0.5;
 
-		globe.add( ticks );
+		globe.add( ptclSys );
 		scene.add( globe );
-
-		console.log( ticks );
 
 		animate();
 
@@ -121,7 +141,7 @@ var App = (function() {
 		requestAnimationFrame( animate );
 
 		//ticks.rotation.x += 0.01;
-		ticks.rotation.y += 0.005;
+		ptclSys.rotation.y += 0.005;
 		//ticks.position.x = Math.sin(bounce) * 100;
 		//bounce += 0.01;
 
@@ -143,6 +163,7 @@ var App = (function() {
 	app = {
 		'loadData' : loadData,
 		'renderer' : renderer,
+		'geometry' : globe,
 		'data' : data
 	}
 
