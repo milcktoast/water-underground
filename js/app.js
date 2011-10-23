@@ -70,20 +70,20 @@ var App = (function() {
 
 		lineGeom = new THREE.Geometry();
 
-		for ( longitude = 0; longitude <= Math.PI * 2; longitude += Math.PI/18 ) {
+		for ( longitude = 0; longitude <= Math.PI * 2; longitude += Math.PI/180 ) {
 
 			inclat = 0;
 
-			for ( latitude = 0; latitude <= Math.PI; latitude += Math.PI/18 ) {
+			for ( latitude = 0; latitude <= Math.PI; latitude += Math.PI/180 ) {
 
+				lineLength = Math.random() * 20;
+				x0 = ( lineRadius - lineLength ) * Math.cos( longitude ) * Math.sin( latitude );
+				z0 = ( lineRadius - lineLength ) * Math.sin( longitude ) * Math.sin( latitude );
+				y0 = ( lineRadius - lineLength ) * Math.cos( latitude );
 
-				x0 = lineRadius * Math.cos( longitude ) * Math.sin( latitude );
-				z0 = lineRadius * Math.sin( longitude ) * Math.sin( latitude );
-				y0 = lineRadius * Math.cos( latitude );
-
-				x1 = (lineRadius - lineLength) * Math.cos( longitude ) * Math.sin( latitude );
-				z1 = (lineRadius - lineLength) * Math.sin( longitude ) * Math.sin( latitude );
-				y1 = (lineRadius - lineLength) * Math.cos( latitude );
+				//x1 = (lineRadius - lineLength) * Math.cos( longitude ) * Math.sin( latitude );
+				//z1 = (lineRadius - lineLength) * Math.sin( longitude ) * Math.sin( latitude );
+				//y1 = (lineRadius - lineLength) * Math.cos( latitude );
 
 				v0 = new THREE.Vector3( x0, y0, z0 );
 				//v1 = new THREE.Vector3( x1, y1, z1 );
