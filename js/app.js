@@ -2,7 +2,7 @@
 var App = (function() {
 	var	app, data = {},
 
-		camera, scene, renderer, sun, ticks,
+		camera, scene, renderer, sun, lines,
 		globe = new THREE.Object3D();
 		bounce = 0;
 
@@ -26,7 +26,7 @@ var App = (function() {
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
 
-		camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1400, 3000 );
+		camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1050, 3000 );
 		camera.position.z = 1400;
 
 		scene = new THREE.Scene();
@@ -52,12 +52,12 @@ var App = (function() {
 		lineMat = new THREE.LineBasicMaterial({
 			opacity: .8, linewidth: 1,
 			depthTest: false,
-			blending: THREE.AdditiveBlending,
+			//blending: THREE.AdditiveBlending,
 			transparent : true
 		});
 		lineMat.color.setHSV( 1, 0, 0.45 );
 
-		ticks = new THREE.Object3D;
+		lines = new THREE.Object3D;
 
 	var	longitude, latitude, lineGeom, lineLength, line,
 		inclat, inclon = 0,
@@ -93,7 +93,7 @@ var App = (function() {
 
 				//line.visible = inclat % 2 == 0 && inclon % 3 == 0;
 
-				//ticks.add( line );
+				//lines.add( line );
 
 				inclat ++;
 				//lineGeometry.vertices.push( new THREE.Vertex( vector ) );						 
@@ -103,15 +103,15 @@ var App = (function() {
 		}
 
 		line = new THREE.Line( lineGeom, lineMat );
-		ticks.add( line );
+		lines.add( line );
 
 		globe.rotation.x = 0.5;
 		globe.rotation.z = 0.5;
 
-		globe.add( ticks );
+		globe.add( lines );
 		scene.add( globe );
 
-		console.log( ticks );
+		console.log( lines );
 
 		animate();
 
@@ -123,9 +123,9 @@ var App = (function() {
 
 		requestAnimationFrame( animate );
 
-		//ticks.rotation.x += 0.01;
-		ticks.rotation.y += 0.005;
-		//ticks.position.x = Math.sin(bounce) * 100;
+		//lines.rotation.x += 0.01;
+		lines.rotation.y += 0.005;
+		//lines.position.x = Math.sin(bounce) * 100;
 		//bounce += 0.01;
 
 		camera.lookAt( scene.position );
@@ -146,6 +146,7 @@ var App = (function() {
 	app = {
 		'loadData' : loadData,
 		'renderer' : renderer,
+		'scene' : scene,
 		'data' : data
 	}
 
