@@ -2,14 +2,15 @@
 var App = (function() {
 	var	app, data = {},
 
+		dispAtts, dispAttVals,
+
 		camera, scene, renderer, sun,
 		ptclSys, matAtts,
 		globe = new THREE.Object3D();
-		bounce = 0;
 
 //	Init
 	(function() {
-	var	y, m, yr, 
+	var	y, m, yr,
 		ambientLight;
 
 		//	Initialize null data object
@@ -50,9 +51,8 @@ var App = (function() {
 		container.appendChild( stats.domElement );
 
 		//	Geometry
-	var	longitude, latitude,
+	var	latitude, longitude, latPos, longPos, latDir, longDir,
 		ptclGeom, ptclMat,
-		inclat, inclon = 0,
 
 		lineLength,
 		radius = 480,
@@ -89,39 +89,33 @@ var App = (function() {
 			depthTest: false
 		});
 
-
 		ptclGeom = new THREE.Geometry();
-		var	dispAtt = matAtts.displacement.value;
+		dispAtts = matAtts.displacement;
+		dispAttVals = dispAtts.value;
 
-		for ( longitude = 0; longitude < Math.PI * 2; longitude += Math.PI/180 ) {
+		for ( latitude = 0; latitude < 180; latitude ++ ) {
 
-			//inclat = 0;
+			latPos = ( latitude ) * 0.0174532925;
 
-			for ( latitude = 0; latitude < Math.PI; latitude += Math.PI/180 ) {
+			for ( longitude = 0; longitude < 360; longitude ++ ) {
 
-				x0 = radius * Math.cos( longitude ) * Math.sin( latitude );
-				z0 = radius * Math.sin( longitude ) * Math.sin( latitude );
-				y0 = radius * Math.cos( latitude );
+				longPos = ( longitude ) * 0.0174532925;
 
-				//x1 = (radius - lineLength) * Math.cos( longitude ) * Math.sin( latitude );
-				//z1 = (radius - lineLength) * Math.sin( longitude ) * Math.sin( latitude );
-				//y1 = (radius - lineLength) * Math.cos( latitude );
+				x0 = radius * Math.cos( longPos ) * Math.sin( latPos );
+				z0 = radius * Math.sin( longPos ) * Math.sin( latPos );
+				y0 = radius * Math.cos( latPos );
 
 				v0 = new THREE.Vector3( x0, y0, z0 );
-				//v1 = new THREE.Vector3( x1, y1, z1 );
 
 				ptclGeom.vertices.push( new THREE.Vertex( v0 ) );
-				dispAtt.push( Math.random() * 50 );
+				dispAttVals.push( Math.random() * 50 );
 
-				//inclat ++;
 			}
 
-			inclon ++;
 		}
 
-		console.log( matAtts );
-
 		ptclSys = new THREE.ParticleSystem( ptclGeom, ptclMat );
+		ptclSys.dynamic = true;
 		//ptclSys.sortParticles = true;
 
 		globe.rotation.x = 0.5;
@@ -154,9 +148,22 @@ var App = (function() {
 	}
 
 	//	load data async
-	function loadData( year, month, data ) {
+	function loadData( year, month, ndata ) {
 		console.log( 'loaded : ', year, month );
-		app.data[ year ][ month ] = data;
+		data[ year ][ month - 1 ] = ndata;
+
+		updateDisplacement( year, month );
+	}
+
+	function updateDisplacement( year, month ) {
+	var	vtl = dispAttVals.length, i;
+
+		for( i = 0; i < vtl; i ++ ) {
+
+			dispAttVals[ i ] = data[ year ][ month - 1 ][ i ];
+		}
+		dispAtts.needsUpdate = true;
+
 	}
 
 	//	public functions and vars
