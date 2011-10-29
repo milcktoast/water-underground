@@ -93,11 +93,11 @@ var App = (function() {
 		dispAtts = matAtts.displacement;
 		dispAttVals = dispAtts.value;
 
-		for ( latitude = 0; latitude < 180; latitude ++ ) {
+		for ( latitude = 180; latitude > 0; latitude -- ) {
 
 			latPos = ( latitude ) * 0.0174532925;
 
-			for ( longitude = 0; longitude < 360; longitude ++ ) {
+			for ( longitude = 360; longitude > 0; longitude -- ) {
 
 				longPos = ( longitude ) * 0.0174532925;
 
@@ -134,16 +134,13 @@ var App = (function() {
 
 		requestAnimationFrame( animate );
 
-		//ticks.rotation.x += 0.01;
 		ptclSys.rotation.y += 0.005;
-		//ticks.position.x = Math.sin(bounce) * 100;
-		//bounce += 0.01;
-
 		camera.lookAt( scene.position );
-
 		renderer.render( scene, camera );
 
 		stats.update();
+
+		//TWEEN.update();
 
 	}
 
@@ -156,7 +153,10 @@ var App = (function() {
 	}
 
 	function updateDisplacement( year, month ) {
-	var	vtl = dispAttVals.length, i;
+	var	vtl = dispAttVals.length, i,
+		dispTween;
+
+		//TWEEN.removeAll();
 
 		for( i = 0; i < vtl; i ++ ) {
 
