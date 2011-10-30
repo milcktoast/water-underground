@@ -5,24 +5,13 @@ var App = (function() {
 		dispAtts, dispAttVals,
 
 		camera, scene, renderer, sun,
-		ptclSys, matAtts,
+		ptclSys, matAtts, ptclMat, ptclGeom,
 		globe = new THREE.Object3D();
 
 //	Init
 	(function() {
 	var	y, m, yr,
 		ambientLight;
-
-		//	Initialize null data object
-		for( y = 2002; y <= 2011; y++ ) {
-
-			data[ y ] = yr = [];
-
-			for( m = 0; m < 12; m++ ) {
-
-				yr[ m ] = null;
-			}
-		}
 
 		//	Initialize scene
 		container = document.createElement( 'div' );
@@ -52,7 +41,6 @@ var App = (function() {
 
 		//	Geometry
 	var	latitude, longitude, latPos, longPos, latDir, longDir,
-		ptclGeom, ptclMat,
 
 		lineLength,
 		radius = 480,
@@ -72,8 +60,8 @@ var App = (function() {
 
 		matAtts = {
 			displacement : { type: 'f', value: [] }
-		}
-		ptclMat = new THREE.ShaderMaterial( {
+		};
+		ptclMat = new THREE.ShaderMaterial({
 			attributes : matAtts,
 			uniforms: {
 
@@ -95,11 +83,11 @@ var App = (function() {
 
 		for ( latitude = 180; latitude > 0; latitude -- ) {
 
-			latPos = ( latitude ) * 0.0174532925;
+			latPos = ( latitude ) * ( Math.PI / 180 );
 
 			for ( longitude = 360; longitude > 0; longitude -- ) {
 
-				longPos = ( longitude ) * 0.0174532925;
+				longPos = ( longitude ) * ( Math.PI / 180 );
 
 				x0 = radius * Math.cos( longPos ) * Math.sin( latPos );
 				z0 = radius * Math.sin( longPos ) * Math.sin( latPos );
@@ -126,45 +114,81 @@ var App = (function() {
 
 		animate();
 
+		function animate() {
+
+			render();
+			requestAnimationFrame( animate );
+
+			stats.update();
+			TWEEN.update();
+
+		}
+		function render() {
+
+			ptclSys.rotation.y += 0.005;
+			camera.lookAt( scene.position );
+			renderer.render( scene, camera );
+		}
+
 	}());
 
 
-
-	function animate() {
-
-		requestAnimationFrame( animate );
-
-		ptclSys.rotation.y += 0.005;
-		camera.lookAt( scene.position );
-		renderer.render( scene, camera );
-
-		stats.update();
-
-		//TWEEN.update();
-
-	}
-
 	//	load data async
 	function loadData( year, month, ndata ) {
-		console.log( 'loaded : ', year, month );
-		data[ year ][ month - 1 ] = ndata;
+	var	name = year + '-' + month;
 
-		updateDisplacement( year, month );
+		console.log( 'loaded : ', year, month );
+		data[ name ] = ndata;
+
+		updateDisplacement( name );
 	}
 
-	function updateDisplacement( year, month ) {
+	function updateDisplacement( name ) {
 	var	vtl = dispAttVals.length, i,
-		dispTween;
-
-		//TWEEN.removeAll();
+		edata = cloneObj( dispAttVals ),
+		ndata = data[ name ],
+		stage = { d: 0 },
+		diff = [],
+		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 2000 ).onUpdate( update ).onComplete( complete ).start();
 
 		for( i = 0; i < vtl; i ++ ) {
 
-			dispAttVals[ i ] = data[ year ][ month - 1 ][ i ];
+			diff.push( ndata[ i ] - edata[ i ] );
 		}
-		dispAtts.needsUpdate = true;
+		//TWEEN.removeAll();
+
+		function update() {
+		var	cstage = stage.d;
+
+			for( i = 0; i < vtl; i ++ ) {
+
+				dispAttVals[ i ] = edata[ i ] + diff[ i ] * cstage;
+			}
+			dispAtts.needsUpdate = true;
+		}
+		function complete() {
+
+			console.log( 'complete' );
+		}
+
 
 	}
+
+	//	clone objects
+ 	cloneObj= function( object ) {
+	var newObj = (object instanceof Array) ? [] : {};
+
+		for ( i in object ) {
+
+			if ( object[i] && typeof object[i] == "object" ) {
+
+				newObj[i] = object[i].clone();
+
+			} else newObj[i] = object[i];
+		}
+
+		return newObj;
+	};
 
 	//	public functions and vars
 	app = {
