@@ -2,66 +2,74 @@
 var App = (function() {
 	var	app, data = {},
 
-		dispAtts, dispAttVals,
+		container, camera, scene, renderer, overRenderer, ambientLight,
+		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals,
 
-		camera, scene, renderer, sun,
-		ptclSys, matAtts, ptclMat, ptclGeom,
-		globe = new THREE.Object3D();
+		PI_HALF = Math.PI / 2,
+		mouse = { x: 0, y: 0 }, mouseOnDown = { x: 0, y: 0 },
+		rotation = { x: Math.PI * 3/2, y: Math.PI / 6.0 },
+		target = { x: 0, y: 0 },
+		targetOnDown = { x: 0, y: 0 },
+		distance = 10000, distanceTarget = 1900,
+		curZoomSpeed = 0,
+		zoomSpeed = 50,
+		linewidth = 5;
 
 //	Init
 	(function() {
-	var	y, m, yr,
-		ambientLight;
+	var	latitude, longitude, latPos, longPos, latDir, longDir,
+		radius = 480, neutDisp = radius / 2.5,
+		x0, y0, z0, v0;
 
-		//	Initialize scene
+
+		//	Scene
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
 
-		camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1000, 3000 );
-		camera.position.z = 1400;
-
-		scene = new THREE.Scene();
+		camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
+		camera.position.z = distance;
 
 		renderer = new THREE.WebGLRenderer();
+		renderer.autoClear = false;
+		renderer.setClearColorHex(0x000000, 0.0);
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		container.appendChild( renderer.domElement );
 
 		ambientLight = new THREE.AmbientLight( 0x606060 );
+
+		scene = new THREE.Scene();
+		scene.add( camera );
 		scene.add( ambientLight );
-/*
-		sun = new THREE.DirectionalLight( 0xffffff );
-		sun.position = camera.position.clone();
-		scene.add( sun );
-*/
-		//	FPS stats
+
 		stats = new Stats();
 		stats.domElement.style.position = 'absolute';
 		stats.domElement.style.top = '0px';
 		container.appendChild( stats.domElement );
 
-		//	Geometry
-	var	latitude, longitude, latPos, longPos, latDir, longDir,
 
-		lineLength,
-		radius = 480,
+		//	Events
+		container.addEventListener('mousedown', onMouseDown, false);
+		container.addEventListener('mousewheel', onMouseWheel, false);
+		window.addEventListener('resize', onWindowResize, false);
 
-		x0, y0, z0, v0,
-		x1, y1, z1, v1;
+		container.addEventListener('mouseover', function() {
+			overRenderer = true;
+		}, false);
 
-/*
-		ptclMat = new THREE.ParticleBasicMaterial({
-			size: 0.5,
-			blending: THREE.AdditiveBlending,
-			opacity: 0.8,
-			transparent: true
-		});
-		ptclMat.color.setHSV( 1, 0, 0.45 );
-*/
+		container.addEventListener('mouseout', function() {
+			overRenderer = false;
+		}, false);
+
+
+		//	Geometry / materials
+		lineGeom = new THREE.Geometry();
 
 		matAtts = {
 			displacement : { type: 'f', value: [] }
 		};
-		ptclMat = new THREE.ShaderMaterial({
+
+		lineMat = new THREE.ShaderMaterial({
+
 			attributes : matAtts,
 			uniforms: {
 
@@ -71,16 +79,20 @@ var App = (function() {
 				"amount": { type: "f", value: 0 }
 
 			},
+
 			vertexShader: document.getElementById( 'vs' ).textContent,
 			fragmentShader: document.getElementById( 'fs' ).textContent,
 
 			depthTest: false
 		});
 
-		ptclGeom = new THREE.Geometry();
+		lineMat.linewidth = linewidth;
+
 		dispAtts = matAtts.displacement;
 		dispAttVals = dispAtts.value;
 
+
+		//	Init globe vertices
 		for ( latitude = 180; latitude > 0; latitude -- ) {
 
 			latPos = ( latitude ) * ( Math.PI / 180 );
@@ -95,49 +107,33 @@ var App = (function() {
 
 				v0 = new THREE.Vector3( x0, y0, z0 );
 
-				ptclGeom.vertices.push( new THREE.Vertex( v0 ) );
-				dispAttVals.push( Math.random() * 50 );
+				lineGeom.vertices.push( new THREE.Vertex( v0 ) );
+				dispAttVals.push( neutDisp );
 
 			}
-
 		}
 
-		ptclSys = new THREE.ParticleSystem( ptclGeom, ptclMat );
-		ptclSys.dynamic = true;
-		//ptclSys.sortParticles = true;
+		lineGroup = new THREE.Line( lineGeom, lineMat );
+		lineGroup.dynamic = true;
 
-		globe.rotation.x = 0.5;
-		globe.rotation.z = 0.5;
+		globe = new THREE.Object3D();
+	//	globe.rotation.x = 0.5;
+	//	globe.rotation.z = 0.5;
 
-		globe.add( ptclSys );
+		globe.add( lineGroup );
 		scene.add( globe );
 
 		animate();
 
-		function animate() {
-
-			render();
-			requestAnimationFrame( animate );
-
-			stats.update();
-			TWEEN.update();
-
-		}
-		function render() {
-
-			ptclSys.rotation.y += 0.005;
-			camera.lookAt( scene.position );
-			renderer.render( scene, camera );
-		}
-
 	}());
+
 
 
 	//	load data async
 	function loadData( year, month, ndata ) {
 	var	name = year + '-' + month;
 
-		console.log( 'loaded : ', year, month );
+		console.log( 'loaded : '+ name );
 		data[ name ] = ndata;
 
 		updateDisplacement( name );
@@ -149,7 +145,9 @@ var App = (function() {
 		ndata = data[ name ],
 		stage = { d: 0 },
 		diff = [],
-		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 2000 ).onUpdate( update ).onComplete( complete ).start();
+		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 300 )
+			.easing( TWEEN.Easing.Cubic.EaseOut )
+			.onUpdate( update ).onComplete( complete ).start();
 
 		for( i = 0; i < vtl; i ++ ) {
 
@@ -171,8 +169,115 @@ var App = (function() {
 			console.log( 'complete' );
 		}
 
-
 	}
+
+	//	UI
+	function onMouseDown( event ) {
+		event.preventDefault();
+
+		container.addEventListener('mousemove', onMouseMove, false);
+		container.addEventListener('mouseup', onMouseUp, false);
+		container.addEventListener('mouseout', onMouseOut, false);
+
+		mouseOnDown.x = - event.clientX;
+		mouseOnDown.y = event.clientY;
+
+		targetOnDown.x = target.x;
+		targetOnDown.y = target.y;
+
+		container.style.cursor = 'move';
+	}
+
+	function onMouseMove( event ) {
+		mouse.x = - event.clientX;
+		mouse.y = event.clientY;
+
+		var zoomDamp = distance / 1000;
+
+		target.x = targetOnDown.x + (mouse.x - mouseOnDown.x) * 0.005 * zoomDamp;
+		target.y = targetOnDown.y + (mouse.y - mouseOnDown.y) * 0.005 * zoomDamp;
+
+		target.y = target.y > PI_HALF ? PI_HALF : target.y;
+		target.y = target.y < - PI_HALF ? - PI_HALF : target.y;
+	}
+
+	function onMouseUp( event ) {
+		container.removeEventListener('mousemove', onMouseMove, false);
+		container.removeEventListener('mouseup', onMouseUp, false);
+		container.removeEventListener('mouseout', onMouseOut, false);
+		container.style.cursor = 'auto';
+	}
+
+	function onMouseOut( event ) {
+		container.removeEventListener('mousemove', onMouseMove, false);
+		container.removeEventListener('mouseup', onMouseUp, false);
+		container.removeEventListener('mouseout', onMouseOut, false);
+	}
+
+	function onMouseWheel( event ) {
+		event.preventDefault();
+		if ( overRenderer ) {
+			zoom(event.wheelDeltaY * 0.3);
+		}
+		return false;
+	}
+
+	function onWindowResize( event ) {
+		console.log('resize');
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+	}
+
+	function zoom( delta ) {
+		distanceTarget -= delta;
+		distanceTarget = distanceTarget > 2200 ? 2200 : distanceTarget;
+		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
+	}
+
+	function animate() {
+		requestAnimationFrame( animate );
+		render();
+	}
+	console.log( globe.position );
+	
+	function render() {
+		var gpos = globe.position.clone().subSelf( new THREE.Vector3( 0,500,0 ));
+		zoom(curZoomSpeed);
+
+		rotation.x += (target.x - rotation.x) * 0.1;
+		rotation.y += (target.y - rotation.y) * 0.1;
+		distance += (distanceTarget - distance);
+
+		camera.position.x = distance * Math.sin(rotation.x) * Math.cos(rotation.y);
+		camera.position.y = distance * Math.sin(rotation.y);
+		camera.position.z = distance * Math.cos(rotation.x) * Math.cos(rotation.y);
+/*
+		globe.rotation.y = -rotation.x;
+		globe.rotation.x = rotation.y;
+*/
+/*
+		console.log( distance,
+			camera.position.x,
+			camera.position.y,
+			camera.position.z,
+			rotation.x,
+			rotation.y
+		);
+*/
+	//	vector.copy(camera.position);
+	//	camera.lookAt( scene.position );
+
+		camera.lookAt( new THREE.Vector3( 0, -camera.position.y / 10 /* + ( 2200 - camera.position.z ) / 4 */, 0 ));
+
+		renderer.clear();
+		renderer.render(scene, camera);
+	//	renderer.render(sceneAtmosphere, camera);
+
+		stats.update();
+		TWEEN.update();
+	}
+
 
 	//	clone objects
  	cloneObj= function( object ) {

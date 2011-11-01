@@ -3,53 +3,58 @@
 <head>
 	<title>ground water vis</title>
 	<style type="text/css">
-		body { margin: 0; overflow: hidden; }
+		body { margin: 0; overflow: hidden; background: #111; }
 	</style>
 </head>
 <body>
 
-	<script type="text/javascript" src="../three.js/build/Three_uncomp.js"></script>
+	<script type="text/javascript" src="../three.js/build/Three_aq_lineCustomAtts.js"></script>
 	<script type="text/javascript" src="../three.js/examples/js/RequestAnimationFrame.js"></script>
 	<script type="text/javascript" src="../three.js/examples/js/Tween.js"></script>
 	<script type="text/javascript" src="../three.js/examples/js/Stats.js"></script>
 
 	<script id="vs" type="x-shader/x-vertex">
 
-	uniform float dispX;
-	uniform float dispY;
-	uniform float dispZ;
-//	uniform float amount;
-	attribute float displacement;
+		uniform float dispX;
+		uniform float dispY;
+		uniform float dispZ;
+	//	uniform float amount;
+		attribute float displacement;
+		varying float vDisplace;
 	
-//	varying float disp;
+	//	varying float disp;
 
-	 void main() {
+		 void main() {
 
-		//vec3 pos = vec3( position.x + dispX, position.y + dispY, position.z + dispZ );
-
-		gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * - displacement ), 1.0 );
-
-	 }
+			//vec3 pos = vec3( position.x + dispX, position.y + dispY, position.z + dispZ );
+			vDisplace = displacement;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * -displacement * 2.5 ), 1.0 );
+		 }
 
 	</script>
-
 	<script id="fs" type="x-shader/x-fragment">
 
-	uniform float dispZ;
+		uniform float dispZ;
+		varying float vDisplace;
 
-	void main() {
+		void main() {
 
-		float depth = gl_FragCoord.z; // / gl_FragCoord.w;
-		gl_FragColor = vec4( 0.0, 0.0, 1.0, smoothstep( - 1.0, 2.5, depth ) );
-
-	 }
+			float depth = gl_FragCoord.z; // / gl_FragCoord.w;
+			gl_FragColor = vec4(
+				smoothstep( -10.0, 30.0, vDisplace ), 
+				smoothstep( 35.0, 20.0, vDisplace ), 
+				smoothstep( 30.0, -50.0, vDisplace ), 
+				smoothstep( 0.97, 0.90, depth ) * 0.9
+			);
+		 }
 
 	</script>
 
 	<script type="text/javascript" src="js/app.js"></script>
 
 	<!--script type="text/javascript" src="http://dl.dropbox.com/u/18230908/GRACE_data.js/GRACE.LatLon.js"></script-->
-	<script type="text/javascript" src="http://dl.dropbox.com/u/4253186/GRACE_data/GRACE.2011.05.js"></script>
+	<!--script type="text/javascript" src="http://dl.dropbox.com/u/4253186/GRACE_data/GRACE.2011.05.js"></script-->
+	<script type="text/javascript" src="../../data/GRACE_data.js/GRACE.2011.05.js"></script>
 
 
 </body>
