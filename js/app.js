@@ -2,116 +2,126 @@
 var App = (function() {
 	var	app, data = {},
 
-		camera, scene, renderer, sun, lines,
-		globe = new THREE.Object3D();
-		bounce = 0;
+		container, camera, scene, renderer, overRenderer, ambientLight,
+		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals,
+
+		PI_HALF = Math.PI / 2,
+		mouse = { x: 0, y: 0 }, mouseOnDown = { x: 0, y: 0 },
+		rotation = { x: Math.PI * 3/2, y: Math.PI / 6.0 },
+		target = { x: 0, y: 0 },
+		targetOnDown = { x: 0, y: 0 },
+		distance = 10000, distanceTarget = 1900,
+		curZoomSpeed = 0,
+		zoomSpeed = 50,
+		linewidth = 5;
 
 //	Init
 	(function() {
-	var	y, m, yr, 
-		ambientLight, lineMat;
+	var	latitude, longitude, latPos, longPos, latDir, longDir,
+		radius = 480, neutDisp = radius / 2.5,
+		x0, y0, z0, v0;
 
-		//	Initialize null data object
-		for( y = 2002; y <= 2011; y++ ) {
 
-			data[ y ] = yr = [];
-
-			for( m = 0; m < 12; m++ ) {
-
-				yr[ m ] = null;
-			}
-		}
-
-		//	Initialize scene
+		//	Scene
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
 
-		camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1050, 3000 );
-		camera.position.z = 1400;
-
-		scene = new THREE.Scene();
+		camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
+		camera.position.z = distance;
 
 		renderer = new THREE.WebGLRenderer();
+		renderer.autoClear = false;
+		renderer.setClearColorHex(0x000000, 0.0);
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		container.appendChild( renderer.domElement );
 
 		ambientLight = new THREE.AmbientLight( 0x606060 );
+
+		scene = new THREE.Scene();
+		scene.add( camera );
 		scene.add( ambientLight );
-/*
-		sun = new THREE.DirectionalLight( 0xffffff );
-		sun.position = camera.position.clone();
-		scene.add( sun );
-*/
-		//	FPS stats
+
 		stats = new Stats();
 		stats.domElement.style.position = 'absolute';
 		stats.domElement.style.top = '0px';
 		container.appendChild( stats.domElement );
 
-		//	Geometry
-		lineMat = new THREE.LineBasicMaterial({
-			opacity: .8, linewidth: 1,
-			depthTest: false,
-			//blending: THREE.AdditiveBlending,
-			transparent : true
-		});
-		lineMat.color.setHSV( 1, 0, 0.45 );
 
-		lines = new THREE.Object3D;
+		//	Events
+		container.addEventListener('mousedown', onMouseDown, false);
+		container.addEventListener('mousewheel', onMouseWheel, false);
+		window.addEventListener('resize', onWindowResize, false);
 
-	var	longitude, latitude, lineGeom, lineLength, line,
-		inclat, inclon = 0,
+		container.addEventListener('mouseover', function() {
+			overRenderer = true;
+		}, false);
 
-		lineLength = 15,
-		lineRadius = 480,
+		container.addEventListener('mouseout', function() {
+			overRenderer = false;
+		}, false);
 
-		x0, y0, z0, v0,
-		x1, y1, z1, v1;
 
+		//	Geometry / materials
 		lineGeom = new THREE.Geometry();
 
-		for ( longitude = 0; longitude <= Math.PI * 2; longitude += Math.PI/180 ) {
+		matAtts = {
+			displacement : { type: 'f', value: [] }
+		};
 
-			inclat = 0;
+		lineMat = new THREE.ShaderMaterial({
 
-			for ( latitude = 0; latitude <= Math.PI; latitude += Math.PI/180 ) {
+			attributes : matAtts,
+			uniforms: {
 
-				lineLength = Math.random() * 20;
-				x0 = ( lineRadius - lineLength ) * Math.cos( longitude ) * Math.sin( latitude );
-				z0 = ( lineRadius - lineLength ) * Math.sin( longitude ) * Math.sin( latitude );
-				y0 = ( lineRadius - lineLength ) * Math.cos( latitude );
+				"dispX": { type: "f", value: 0 },
+				"dispY": { type: "f", value: 0 },
+				"dispZ": { type: "f", value: 0 },
+				"amount": { type: "f", value: 0 }
 
-				//x1 = (lineRadius - lineLength) * Math.cos( longitude ) * Math.sin( latitude );
-				//z1 = (lineRadius - lineLength) * Math.sin( longitude ) * Math.sin( latitude );
-				//y1 = (lineRadius - lineLength) * Math.cos( latitude );
+			},
+
+			vertexShader: document.getElementById( 'vs' ).textContent,
+			fragmentShader: document.getElementById( 'fs' ).textContent,
+
+			depthTest: false
+		});
+
+		lineMat.linewidth = linewidth;
+
+		dispAtts = matAtts.displacement;
+		dispAttVals = dispAtts.value;
+
+
+		//	Init globe vertices
+		for ( latitude = 180; latitude > 0; latitude -- ) {
+
+			latPos = ( latitude ) * ( Math.PI / 180 );
+
+			for ( longitude = 360; longitude > 0; longitude -- ) {
+
+				longPos = ( longitude ) * ( Math.PI / 180 );
+
+				x0 = radius * Math.cos( longPos ) * Math.sin( latPos );
+				z0 = radius * Math.sin( longPos ) * Math.sin( latPos );
+				y0 = radius * Math.cos( latPos );
 
 				v0 = new THREE.Vector3( x0, y0, z0 );
-				//v1 = new THREE.Vector3( x1, y1, z1 );
 
 				lineGeom.vertices.push( new THREE.Vertex( v0 ) );
-				//lineGeom.vertices.push( new THREE.Vertex( v1 ) );
+				dispAttVals.push( neutDisp );
 
-				//line.visible = inclat % 2 == 0 && inclon % 3 == 0;
-
-				//lines.add( line );
-
-				inclat ++;
-				//lineGeometry.vertices.push( new THREE.Vertex( vector ) );						 
 			}
-
-			inclon ++;
 		}
 
-		line = new THREE.Line( lineGeom, lineMat );
-		lines.add( line );
+		lineGroup = new THREE.Line( lineGeom, lineMat );
+		lineGroup.dynamic = true;
 
-		globe.rotation.x = 0.5;
-		globe.rotation.z = 0.5;
+		globe = new THREE.Object3D();
+	//	globe.rotation.x = 0.5;
+	//	globe.rotation.z = 0.5;
 
-		globe.add( lines );
+		globe.add( lineGroup );
 		scene.add( globe );
-
-		console.log( lines );
 
 		animate();
 
@@ -119,34 +129,177 @@ var App = (function() {
 
 
 
+	//	load data async
+	function loadData( year, month, ndata ) {
+	var	name = year + '-' + month;
+
+		console.log( 'loaded : '+ name );
+		data[ name ] = ndata;
+
+		updateDisplacement( name );
+	}
+
+	function updateDisplacement( name ) {
+	var	vtl = dispAttVals.length, i,
+		edata = cloneObj( dispAttVals ),
+		ndata = data[ name ],
+		stage = { d: 0 },
+		diff = [],
+		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 300 )
+			.easing( TWEEN.Easing.Cubic.EaseOut )
+			.onUpdate( update ).onComplete( complete ).start();
+
+		for( i = 0; i < vtl; i ++ ) {
+
+			diff.push( ndata[ i ] - edata[ i ] );
+		}
+		//TWEEN.removeAll();
+
+		function update() {
+		var	cstage = stage.d;
+
+			for( i = 0; i < vtl; i ++ ) {
+
+				dispAttVals[ i ] = edata[ i ] + diff[ i ] * cstage;
+			}
+			dispAtts.needsUpdate = true;
+		}
+		function complete() {
+
+			console.log( 'complete' );
+		}
+
+	}
+
+	//	UI
+	function onMouseDown( event ) {
+		event.preventDefault();
+
+		container.addEventListener('mousemove', onMouseMove, false);
+		container.addEventListener('mouseup', onMouseUp, false);
+		container.addEventListener('mouseout', onMouseOut, false);
+
+		mouseOnDown.x = - event.clientX;
+		mouseOnDown.y = event.clientY;
+
+		targetOnDown.x = target.x;
+		targetOnDown.y = target.y;
+
+		container.style.cursor = 'move';
+	}
+
+	function onMouseMove( event ) {
+		mouse.x = - event.clientX;
+		mouse.y = event.clientY;
+
+		var zoomDamp = distance / 1000;
+
+		target.x = targetOnDown.x + (mouse.x - mouseOnDown.x) * 0.005 * zoomDamp;
+		target.y = targetOnDown.y + (mouse.y - mouseOnDown.y) * 0.005 * zoomDamp;
+
+		target.y = target.y > PI_HALF ? PI_HALF : target.y;
+		target.y = target.y < - PI_HALF ? - PI_HALF : target.y;
+	}
+
+	function onMouseUp( event ) {
+		container.removeEventListener('mousemove', onMouseMove, false);
+		container.removeEventListener('mouseup', onMouseUp, false);
+		container.removeEventListener('mouseout', onMouseOut, false);
+		container.style.cursor = 'auto';
+	}
+
+	function onMouseOut( event ) {
+		container.removeEventListener('mousemove', onMouseMove, false);
+		container.removeEventListener('mouseup', onMouseUp, false);
+		container.removeEventListener('mouseout', onMouseOut, false);
+	}
+
+	function onMouseWheel( event ) {
+		event.preventDefault();
+		if ( overRenderer ) {
+			zoom(event.wheelDeltaY * 0.3);
+		}
+		return false;
+	}
+
+	function onWindowResize( event ) {
+		console.log('resize');
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+	}
+
+	function zoom( delta ) {
+		distanceTarget -= delta;
+		distanceTarget = distanceTarget > 2200 ? 2200 : distanceTarget;
+		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
+	}
+
 	function animate() {
-
 		requestAnimationFrame( animate );
+		render();
+	}
+	console.log( globe.position );
+	
+	function render() {
+		var gpos = globe.position.clone().subSelf( new THREE.Vector3( 0,500,0 ));
+		zoom(curZoomSpeed);
 
-		//lines.rotation.x += 0.01;
-		lines.rotation.y += 0.005;
-		//lines.position.x = Math.sin(bounce) * 100;
-		//bounce += 0.01;
+		rotation.x += (target.x - rotation.x) * 0.1;
+		rotation.y += (target.y - rotation.y) * 0.1;
+		distance += (distanceTarget - distance);
 
-		camera.lookAt( scene.position );
+		camera.position.x = distance * Math.sin(rotation.x) * Math.cos(rotation.y);
+		camera.position.y = distance * Math.sin(rotation.y);
+		camera.position.z = distance * Math.cos(rotation.x) * Math.cos(rotation.y);
+/*
+		globe.rotation.y = -rotation.x;
+		globe.rotation.x = rotation.y;
+*/
+/*
+		console.log( distance,
+			camera.position.x,
+			camera.position.y,
+			camera.position.z,
+			rotation.x,
+			rotation.y
+		);
+*/
+	//	vector.copy(camera.position);
+	//	camera.lookAt( scene.position );
 
-		renderer.render( scene, camera );
+		camera.lookAt( new THREE.Vector3( 0, -camera.position.y / 10 /* + ( 2200 - camera.position.z ) / 4 */, 0 ));
+
+		renderer.clear();
+		renderer.render(scene, camera);
+	//	renderer.render(sceneAtmosphere, camera);
 
 		stats.update();
-
+		TWEEN.update();
 	}
 
-	//	load data async
-	function loadData( year, month, data ) {
-		console.log( 'loaded : ', year, month );
-		app.data[ year ][ month ] = data;
-	}
+
+	//	clone objects
+ 	cloneObj= function( object ) {
+	var newObj = (object instanceof Array) ? [] : {};
+
+		for ( i in object ) {
+
+			if ( object[i] && typeof object[i] == "object" ) {
+
+				newObj[i] = object[i].clone();
+
+			} else newObj[i] = object[i];
+		}
+
+		return newObj;
+	};
 
 	//	public functions and vars
 	app = {
 		'loadData' : loadData,
 		'renderer' : renderer,
-		'scene' : scene,
+		'geometry' : globe,
 		'data' : data
 	}
 
