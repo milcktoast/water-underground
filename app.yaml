@@ -9,7 +9,7 @@ handlers:
   upload: index.html
 
 - url: /
-  static_dir: assets
+  static_dir: js,data
 
 - url: .*
   script: main.py

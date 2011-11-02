@@ -1,5 +1,5 @@
 //	App Wrapper
-var App = (function() {
+var GlobeApp = (function() {
 	var	app, data = {},
 
 		container, camera, scene, renderer, overRenderer, ambientLight,
