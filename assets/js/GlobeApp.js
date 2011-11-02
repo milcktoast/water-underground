@@ -1,25 +1,37 @@
 //	App Wrapper
 var GlobeApp = (function() {
-	var	app, data = {},
+	var	data = {},
 
 		container, camera, scene, renderer, overRenderer, ambientLight,
-		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals,
+		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
-		PI_HALF = Math.PI / 2,
-		mouse = { x: 0, y: 0 }, mouseOnDown = { x: 0, y: 0 },
-		rotation = { x: Math.PI * 3/2, y: Math.PI / 6.0 },
+		pi = Math.PI,
+		pihalf = pi / 2,
+
+		mouse = { x: 0, y: 0 },
+		mouseOnDown = { x: 0, y: 0 },
+
+		rotation = { x: pi * 3/2, y: pi / 6.0 },
+
 		target = { x: 0, y: 0 },
 		targetOnDown = { x: 0, y: 0 },
-		distance = 10000, distanceTarget = 1900,
+
+		distance = 10000,
+		distanceTarget = 1900,
+
 		curZoomSpeed = 0,
 		zoomSpeed = 50,
+
 		linewidth = 2;
+
 
 //	Init
 	(function() {
-	var	latitude, longitude, latPos, longPos, latDir, longDir,
-		radius = 480, neutDisp = radius / 2.5,
-		x0, y0, z0, v0;
+	var	latitude, longitude, latPos, longPos,
+		x0, y0, z0, v0,
+
+		radius = 480, 
+		neutDisp = radius / 2.5;
 
 
 		//	Scene
@@ -31,7 +43,7 @@ var GlobeApp = (function() {
 
 		renderer = new THREE.WebGLRenderer();
 		renderer.autoClear = false;
-		renderer.setClearColorHex(0x000000, 0.0);
+		renderer.setClearColorHex( 0x000000, 0.0 );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		container.appendChild( renderer.domElement );
 
@@ -48,24 +60,25 @@ var GlobeApp = (function() {
 
 
 		//	Events
-		container.addEventListener('mousedown', onMouseDown, false);
-		container.addEventListener('mousewheel', onMouseWheel, false);
-		window.addEventListener('resize', onWindowResize, false);
+		container.addEventListener( 'mousedown', onMouseDown, false );
+		container.addEventListener( 'mousewheel', onMouseWheel, false );
+		window.addEventListener( 'resize', onWindowResize, false );
 
-		container.addEventListener('mouseover', function() {
+		container.addEventListener( 'mouseover', function() {
 			overRenderer = true;
-		}, false);
+		}, false );
 
-		container.addEventListener('mouseout', function() {
+		container.addEventListener( 'mouseout', function() {
 			overRenderer = false;
-		}, false);
+		}, false );
 
 
 		//	Geometry / materials
 		lineGeom = new THREE.Geometry();
 
 		matAtts = {
-			displacement : { type: 'f', value: [] }
+			displacement : { type: 'f', value: [] },
+			opacity : { type: 'f', value: [] }
 		};
 
 		lineMat = new THREE.ShaderMaterial({
@@ -73,10 +86,7 @@ var GlobeApp = (function() {
 			attributes : matAtts,
 			uniforms: {
 
-				"dispX": { type: "f", value: 0 },
-				"dispY": { type: "f", value: 0 },
-				"dispZ": { type: "f", value: 0 },
-				"amount": { type: "f", value: 0 }
+				amount : { type: "f", value: 0 }
 
 			},
 
@@ -90,16 +100,18 @@ var GlobeApp = (function() {
 
 		dispAtts = matAtts.displacement;
 		dispAttVals = dispAtts.value;
+		opacAtts = matAtts.opacity;
+		opacAttVals = opacAtts.value;
 
 
 		//	Init globe vertices
 		for ( latitude = 180; latitude > 0; latitude -- ) {
 
-			latPos = ( latitude ) * ( Math.PI / 180 );
+			latPos = ( latitude ) * ( pi / 180 );
 
 			for ( longitude = 360; longitude > 0; longitude -- ) {
 
-				longPos = ( longitude ) * ( Math.PI / 180 );
+				longPos = ( longitude ) * ( pi / 180 );
 
 				x0 = radius * Math.cos( longPos ) * Math.sin( latPos );
 				z0 = radius * Math.sin( longPos ) * Math.sin( latPos );
@@ -109,6 +121,7 @@ var GlobeApp = (function() {
 
 				lineGeom.vertices.push( new THREE.Vertex( v0 ) );
 				dispAttVals.push( neutDisp );
+				opacAttVals.push( 0.0 );
 
 			}
 		}
@@ -117,58 +130,120 @@ var GlobeApp = (function() {
 		lineGroup.dynamic = true;
 
 		globe = new THREE.Object3D();
-	//	globe.rotation.x = 0.5;
-	//	globe.rotation.z = 0.5;
 
 		globe.add( lineGroup );
 		scene.add( globe );
 
+		getData();
 		animate();
 
 	}());
 
 
+	function getData() {
+	var	s, yr, mo, src, xhr,
+		srcBase = "data/GRACE.";
+
+		for( yr = 2011; yr >= 2011; yr -- ) {
+
+			for( mo = 5; mo > 4; mo -- ) {
+
+				mo = new String( mo );
+				mo = mo.length < 2 ? "0"+ mo : mo;
+
+				src = srcBase + yr +"."+ mo +".json";
+
+				xhr = new XMLHttpRequest();
+				xhr.open( 'GET', src, true );
+				xhr.onreadystatechange = onDataReady;
+
+				xhr.send( null );
+
+			}
+
+		}
+		function onDataReady( event ) {
+		var	target = event.target;
+
+			if ( target.readyState === 4 ) {
+				if ( target.status === 200 ) {
+				var	data = JSON.parse( xhr.responseText );
+					loadData( data.year, data.month, data.data );
+				}
+			}
+		}
+
+	}
 
 	//	load data async
 	function loadData( year, month, ndata ) {
 	var	name = year + '-' + month;
 
-		console.log( 'loaded : '+ name );
+		loadData.count ++;
 		data[ name ] = ndata;
+		console.log( name +' loaded', ':: '+ loadData.count +' months total' );
 
-		updateDisplacement( name );
+		if( name == '2011-05' ) updateDisplacement( name );
 	}
+	loadData.count = 0;
 
 	function updateDisplacement( name ) {
+
+		TWEEN.removeAll();
+
 	var	vtl = dispAttVals.length, i,
-		edata = cloneObj( dispAttVals ),
-		ndata = data[ name ],
+
+		existData = cloneObj( dispAttVals ),
+		existOpacity = cloneObj( opacAttVals ),
+
+		newData = data[ name ],
+		newOpacity = evaluateNull( newData ),
+
+		diffD = new Array( vtl ),
+		diffO = new Array( vtl ),
+
 		stage = { d: 0 },
-		diff = [],
 		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 300 )
 			.easing( TWEEN.Easing.Cubic.EaseOut )
-			.onUpdate( update ).onComplete( complete ).start();
+			.onUpdate( update ).onComplete( complete );
 
 		for( i = 0; i < vtl; i ++ ) {
 
-			diff.push( ndata[ i ] - edata[ i ] );
+			diffD[ i ] = ( newData[ i ] - existData[ i ] );
+			diffO[ i ] = ( newOpacity[ i ] - existOpacity[ i ] );
 		}
-		//TWEEN.removeAll();
+
+		dispTween.start();
 
 		function update() {
 		var	cstage = stage.d;
 
 			for( i = 0; i < vtl; i ++ ) {
 
-				dispAttVals[ i ] = edata[ i ] + diff[ i ] * cstage;
+				dispAttVals[ i ] = existData[ i ] + diffD[ i ] * cstage;
+				opacAttVals[ i ] = existOpacity[ i ] + diffO[ i ] * cstage;
 			}
 			dispAtts.needsUpdate = true;
+			opacAtts.needsUpdate = true;
+
 		}
 		function complete() {
 
 			console.log( 'complete' );
 		}
 
+	}
+
+	function evaluateNull( data ) {
+	var	i, il = data.length,
+		ndata = new Array( il );
+
+		for( i = 0; i < il; i ++ ) {
+
+			ndata[ i ] = data[ i ] == null ? 0.0 : 1.0;
+		}
+
+		return ndata;
 	}
 
 	//	UI
@@ -197,8 +272,8 @@ var GlobeApp = (function() {
 		target.x = targetOnDown.x + ( mouse.x - mouseOnDown.x ) * 0.005 * zoomDamp;
 		target.y = targetOnDown.y + ( mouse.y - mouseOnDown.y ) * 0.005 * zoomDamp;
 
-		target.y = target.y > PI_HALF ? PI_HALF : target.y;
-		target.y = target.y < - PI_HALF ? - PI_HALF : target.y;
+		target.y = target.y > pihalf ? pihalf : target.y;
+		target.y = target.y < - pihalf ? - pihalf : target.y;
 	}
 
 	function onMouseUp( event ) {
@@ -239,10 +314,9 @@ var GlobeApp = (function() {
 		requestAnimationFrame( animate );
 		render();
 	}
-	console.log( globe.position );
-	
+
 	function render() {
-		var gpos = globe.position.clone().subSelf( new THREE.Vector3( 0,500,0 ));
+
 		zoom(curZoomSpeed);
 
 		rotation.x += (target.x - rotation.x) * 0.1;
@@ -252,27 +326,11 @@ var GlobeApp = (function() {
 		camera.position.x = distance * Math.sin(rotation.x) * Math.cos(rotation.y);
 		camera.position.y = distance * Math.sin(rotation.y);
 		camera.position.z = distance * Math.cos(rotation.x) * Math.cos(rotation.y);
-/*
-		globe.rotation.y = -rotation.x;
-		globe.rotation.x = rotation.y;
-*/
-/*
-		console.log( distance,
-			camera.position.x,
-			camera.position.y,
-			camera.position.z,
-			rotation.x,
-			rotation.y
-		);
-*/
-	//	vector.copy(camera.position);
-	//	camera.lookAt( scene.position );
 
-		camera.lookAt( new THREE.Vector3( 0, -camera.position.y / 10 /* + ( 2200 - camera.position.z ) / 4 */, 0 ));
+		camera.lookAt( new THREE.Vector3( 0, -camera.position.y / 10, 0 ));
 
 		renderer.clear();
 		renderer.render(scene, camera);
-	//	renderer.render(sceneAtmosphere, camera);
 
 		stats.update();
 		TWEEN.update();
@@ -280,8 +338,8 @@ var GlobeApp = (function() {
 
 
 	//	clone objects
- 	cloneObj= function( object ) {
-	var newObj = (object instanceof Array) ? [] : {};
+	function cloneObj( object ) {
+	var newObj = ( object instanceof Array ) ? [] : {};
 
 		for ( i in object ) {
 
@@ -296,14 +354,13 @@ var GlobeApp = (function() {
 	};
 
 	//	public functions and vars
-	app = {
+	return {
 		'loadData' : loadData,
 		'renderer' : renderer,
 		'geometry' : globe,
 		'data' : data
-	}
+	};
 
-	return app;
 
 }());
 

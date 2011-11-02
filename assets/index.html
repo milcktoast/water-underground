@@ -15,34 +15,34 @@
 
 	<script id="vs" type="x-shader/x-vertex">
 
-		uniform float dispX;
-		uniform float dispY;
-		uniform float dispZ;
-
 		attribute float displacement;
 		varying float vDisplace;
 
+		attribute float opacity;
+		varying float fade;
+
 		 void main() {
 
-			//vec3 pos = vec3( position.x + dispX, position.y + dispY, position.z + dispZ );
 			vDisplace = displacement;
+			fade = opacity;
 			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * -displacement * 2.5 ), 1.0 );
 		 }
 
 	</script>
 	<script id="fs" type="x-shader/x-fragment">
 
-		uniform float dispZ;
 		varying float vDisplace;
+		varying float fade;
 
 		void main() {
 
 			float depth = gl_FragCoord.z;
+
 			gl_FragColor = vec4(
-				smoothstep( -10.0, 30.0, vDisplace ), 
-				smoothstep( 35.0, 20.0, vDisplace ), 
-				smoothstep( 30.0, -30.0, vDisplace ), 
-				smoothstep( 0.97, 0.90, depth ) * 0.9
+				smoothstep( -10.0, 30.0, vDisplace ),
+				smoothstep( 35.0, 20.0, vDisplace ),
+				smoothstep( 30.0, -30.0, vDisplace ),
+				smoothstep( 0.97, 0.90, depth ) * 0.9 * fade
 			);
 		 }
 
@@ -50,7 +50,7 @@
 
 	<script type="text/javascript" src="js/GlobeApp.js"></script>
 
-	<script type="text/javascript" src="data/GRACE.2011.05.js"></script>
+	<!--script type="text/javascript" src="data/GRACE.2011.05.js"></script-->
 
 
 </body>
