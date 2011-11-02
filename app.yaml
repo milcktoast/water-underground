@@ -5,11 +5,11 @@ api_version: 1
 
 handlers:
 - url: /
-  static_files: index.html
-  upload: index.html
+  static_files: assets/index.html
+  upload: assets/index.html
 
 - url: /
-  static_dir: js,data
+  static_dir: assets
 
 - url: .*
   script: main.py
