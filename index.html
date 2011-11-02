@@ -8,21 +8,19 @@
 </head>
 <body>
 
-	<script type="text/javascript" src="../three.js/build/Three_aq_lineCustomAtts.js"></script>
-	<script type="text/javascript" src="../three.js/examples/js/RequestAnimationFrame.js"></script>
-	<script type="text/javascript" src="../three.js/examples/js/Tween.js"></script>
-	<script type="text/javascript" src="../three.js/examples/js/Stats.js"></script>
+	<script type="text/javascript" src="js/Three_aq_lineCustomAtts.js"></script>
+	<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
+	<script type="text/javascript" src="js/Tween.js"></script>
+	<script type="text/javascript" src="js/Stats.js"></script>
 
 	<script id="vs" type="x-shader/x-vertex">
 
 		uniform float dispX;
 		uniform float dispY;
 		uniform float dispZ;
-	//	uniform float amount;
+
 		attribute float displacement;
 		varying float vDisplace;
-	
-	//	varying float disp;
 
 		 void main() {
 
@@ -50,11 +48,9 @@
 
 	</script>
 
-	<script type="text/javascript" src="js/app.js"></script>
+	<script type="text/javascript" src="js/GlobeApp.js"></script>
 
-	<!--script type="text/javascript" src="http://dl.dropbox.com/u/18230908/GRACE_data.js/GRACE.LatLon.js"></script-->
-	<!--script type="text/javascript" src="http://dl.dropbox.com/u/4253186/GRACE_data/GRACE.2011.05.js"></script-->
-	<script type="text/javascript" src="../../data/GRACE_data.js/GRACE.2011.05.js"></script>
+	<script type="text/javascript" src="data/GRACE.2011.05.js"></script>
 
 
 </body>
