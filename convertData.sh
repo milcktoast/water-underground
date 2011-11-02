@@ -1,1 +1,0 @@
-for i in $(find . -type f); do sed 's/NaN/null/g' $i > $i-tmp; mv $i $i-backup; mv $i-tmp $i; done

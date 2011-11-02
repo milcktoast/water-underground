@@ -1,6 +1,7 @@
 //	App Wrapper
 var GlobeApp = (function() {
 	var	data = {},
+		nulls = {},
 
 		container, camera, scene, renderer, overRenderer, ambientLight,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
@@ -141,52 +142,58 @@ var GlobeApp = (function() {
 
 
 	function getData() {
-	var	s, yr, mo, src, xhr,
+	var	s, yr, mo,
 		srcBase = "data/GRACE.";
 
 		for( yr = 2011; yr >= 2011; yr -- ) {
 
-			for( mo = 5; mo > 4; mo -- ) {
+			for( mo = 12; mo > 2; mo -- ) {
+
+				if( yr == 2011 && mo > 5 ) continue;
+				if( yr == 2002 && mo < 4 ) break;
 
 				mo = new String( mo );
 				mo = mo.length < 2 ? "0"+ mo : mo;
 
-				src = srcBase + yr +"."+ mo +".json";
-
-				xhr = new XMLHttpRequest();
-				xhr.open( 'GET', src, true );
-				xhr.onreadystatechange = onDataReady;
-
-				xhr.send( null );
+				makeRequest( srcBase + yr +"."+ mo +".json" );
 
 			}
 
 		}
-		function onDataReady( event ) {
-		var	target = event.target;
 
-			if ( target.readyState === 4 ) {
-				if ( target.status === 200 ) {
-				var	data = JSON.parse( xhr.responseText );
-					loadData( data.year, data.month, data.data );
+		function makeRequest( src ) {
+		var	xhr = new XMLHttpRequest();
+
+			xhr.open( 'GET', src, true );
+			xhr.onreadystatechange = function( event ) {
+				if ( xhr.readyState === 4 ) {
+					if ( xhr.status === 200 ) {
+					var	data = JSON.parse( xhr.responseText );
+						loadData( data.year, data.month, data.data );
+					}
 				}
-			}
+			};
+
+			xhr.send( null );
+
 		}
 
 	}
 
-	//	load data async
+	//	Load data async
 	function loadData( year, month, ndata ) {
 	var	name = year + '-' + month;
 
 		loadData.count ++;
 		data[ name ] = ndata;
+		nulls[ name ] = evaluateNull( ndata );
 		console.log( name +' loaded', ':: '+ loadData.count +' months total' );
 
 		if( name == '2011-05' ) updateDisplacement( name );
 	}
 	loadData.count = 0;
 
+	//	Update vertex displacement and opacity to new dataset
 	function updateDisplacement( name ) {
 
 		TWEEN.removeAll();
@@ -197,7 +204,7 @@ var GlobeApp = (function() {
 		existOpacity = cloneObj( opacAttVals ),
 
 		newData = data[ name ],
-		newOpacity = evaluateNull( newData ),
+		newOpacity = nulls[ name ],
 
 		diffD = new Array( vtl ),
 		diffO = new Array( vtl ),
@@ -317,20 +324,20 @@ var GlobeApp = (function() {
 
 	function render() {
 
-		zoom(curZoomSpeed);
+		zoom( curZoomSpeed );
 
-		rotation.x += (target.x - rotation.x) * 0.1;
-		rotation.y += (target.y - rotation.y) * 0.1;
-		distance += (distanceTarget - distance);
+		rotation.x += ( target.x - rotation.x ) * 0.1;
+		rotation.y += ( target.y - rotation.y ) * 0.1;
+		distance +=  ( distanceTarget - distance );
 
-		camera.position.x = distance * Math.sin(rotation.x) * Math.cos(rotation.y);
-		camera.position.y = distance * Math.sin(rotation.y);
-		camera.position.z = distance * Math.cos(rotation.x) * Math.cos(rotation.y);
+		camera.position.x = distance * Math.sin( rotation.x ) * Math.cos(rotation.y);
+		camera.position.y = distance * Math.sin( rotation.y );
+		camera.position.z = distance * Math.cos( rotation.x ) * Math.cos(rotation.y);
 
 		camera.lookAt( new THREE.Vector3( 0, -camera.position.y / 10, 0 ));
 
 		renderer.clear();
-		renderer.render(scene, camera);
+		renderer.render( scene, camera );
 
 		stats.update();
 		TWEEN.update();
