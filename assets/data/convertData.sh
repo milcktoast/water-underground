@@ -1,1 +1,3 @@
-for i in $(find . -type f); do sed 's/NaN/null/g;s/\n//g' $i > $i-tmp; mv $i $i-backup; mv $i-tmp $i; done
+for i in $(find . -type f); 
+do perl -i -p -e 's/\n/\,/g;s/NaN/null/g' $i;
+done

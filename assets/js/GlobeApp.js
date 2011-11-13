@@ -3,7 +3,9 @@ var GlobeApp = (function() {
 	var	data = {},
 		nulls = {},
 
-		container, camera, scene, renderer, overRenderer, ambientLight,
+		guis = new Array(),
+
+		container, guicon, camera, scene, renderer, overRenderer, ambientLight,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
@@ -34,6 +36,7 @@ var GlobeApp = (function() {
 		radius = 480, 
 		neutDisp = radius / 2.5;
 
+		guicon = document.getElementById( 'gui-container' );
 
 		//	Scene
 		container = document.createElement( 'div' );
@@ -142,10 +145,12 @@ var GlobeApp = (function() {
 
 
 	function getData() {
-	var	s, yr, mo,
+	var	s, yr, mo, seg,
 		srcBase = "data/GRACE.";
 
-		for( yr = 2011; yr >= 2011; yr -- ) {
+		getData.count = 0;
+
+		for( yr = 2011; yr >= 2002; yr -- ) {
 
 			for( mo = 12; mo > 2; mo -- ) {
 
@@ -155,21 +160,39 @@ var GlobeApp = (function() {
 				mo = new String( mo );
 				mo = mo.length < 2 ? "0"+ mo : mo;
 
-				makeRequest( srcBase + yr +"."+ mo +".json" );
+				seg = document.createElement( 'div' );
+				seg.setAttribute( 'class', 'loading' );
+				seg.setAttribute( 'data-date', yr +"-"+ mo );
+
+				guicon.appendChild( seg );
+				guis.push( seg );
+
+				equalizeGuis();
+
+				getData.count ++;
+
+				makeRequest( srcBase + yr +"."+ mo +".json", seg );
+				//data[ yr + "-" + mo ] = { src : srcBase + yr +"."+ mo +".json" };
 
 			}
 
 		}
 
-		function makeRequest( src ) {
-		var	xhr = new XMLHttpRequest();
+		function makeRequest( src, elem ) {
+		var	json, xhr = new XMLHttpRequest();
 
 			xhr.open( 'GET', src, true );
 			xhr.onreadystatechange = function( event ) {
+
 				if ( xhr.readyState === 4 ) {
+
 					if ( xhr.status === 200 ) {
-					var	data = JSON.parse( xhr.responseText );
-						loadData( data.year, data.month, data.data );
+
+						json = JSON.parse( xhr.responseText );
+						elem.setAttribute( 'class', 'loaded' );
+						elem.addEventListener( 'mouseover', onClickyClick );
+
+						loadData( json.year, json.month, json.data );
 					}
 				}
 			};
@@ -187,7 +210,7 @@ var GlobeApp = (function() {
 		loadData.count ++;
 		data[ name ] = ndata;
 		nulls[ name ] = evaluateNull( ndata );
-		console.log( name +' loaded', ':: '+ loadData.count +' months total' );
+		console.log( loadData.count, getData.count );
 
 		if( name == '2011-05' ) updateDisplacement( name );
 	}
@@ -254,6 +277,21 @@ var GlobeApp = (function() {
 	}
 
 	//	UI
+	function equalizeGuis() {
+	var	e, el = guis.length,
+		ewidth = Math.ceil( window.innerWidth / el );
+
+		for( e = 0; e < el; e ++ ) {
+
+			guis[ e ].style.width = ewidth + "px";
+		}
+	}
+
+	function onClickyClick( event ) {
+
+		updateDisplacement( this.getAttribute( 'data-date' ) );
+	}
+
 	function onMouseDown( event ) {
 		event.preventDefault();
 
@@ -309,6 +347,7 @@ var GlobeApp = (function() {
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
 		renderer.setSize( window.innerWidth, window.innerHeight );
+		equalizeGuis();
 	}
 
 	function zoom( delta ) {
@@ -363,6 +402,7 @@ var GlobeApp = (function() {
 	//	public functions and vars
 	return {
 		'loadData' : loadData,
+		'updateDisplacement' : updateDisplacement,
 		'renderer' : renderer,
 		'geometry' : globe,
 		'data' : data

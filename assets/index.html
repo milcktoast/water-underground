@@ -4,11 +4,25 @@
 	<title>ground water vis</title>
 	<style type="text/css">
 		body { margin: 0; overflow: hidden; background: #111; }
+		#gui-container { 
+			position: absolute; overflow: hidden; width: 110%; bottom: 0; right: 0;
+			border-top: 1px solid #888;
+		}
+		#gui-container div { 
+			float: right; height: 30px;  background: #fff;
+			-webkit-transition-property: opacity, width;
+			-webkit-transition: 300ms ease-out;
+		}
+		#gui-container .loading { opacity: 0.05 }
+		#gui-container .loaded { opacity: 0.25; cursor: pointer; }
+		#gui-container .loaded:hover { opacity: 0.9; }
 	</style>
 </head>
 <body>
 
-	<script type="text/javascript" src="js/Three_aq_lineCustomAtts.js"></script>
+	<div id="gui-container"></div>
+
+	<script type="text/javascript" src="js/Three_dev_r46.js"></script>
 	<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
 	<script type="text/javascript" src="js/Tween.js"></script>
 	<script type="text/javascript" src="js/Stats.js"></script>
