@@ -16,11 +16,16 @@
 		#gui-container .loading { opacity: 0.05 }
 		#gui-container .loaded { opacity: 0.25; cursor: pointer; }
 		#gui-container .loaded:hover { opacity: 0.9; }
+		#year-display {
+			position: absolute; right: 4px; bottom: 35px; font-size: 24px; color: #fff; opacity: 0.7;
+			font-family: 'Georgia', serif;
+		}
 	</style>
 </head>
 <body>
 
 	<div id="gui-container"></div>
+	<div id="year-display"></div>
 
 	<script type="text/javascript" src="js/Three_dev_r46.js"></script>
 	<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>

@@ -4,8 +4,22 @@ var GlobeApp = (function() {
 		nulls = {},
 
 		guis = new Array(),
+		months = {
+			"01":"January",
+			"02":"February",
+			"03":"March",
+			"04":"April",
+			"05":"May",
+			"06":"June",
+			"07":"July",
+			"08":"August",
+			"09":"September",
+			"10":"October",
+			"11":"November",
+			"12":"December"
+		},
 
-		container, guicon, camera, scene, renderer, overRenderer, ambientLight,
+		container, guicon, namecon, camera, scene, renderer, overRenderer, ambientLight,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
@@ -37,6 +51,7 @@ var GlobeApp = (function() {
 		neutDisp = radius / 2.5;
 
 		guicon = document.getElementById( 'gui-container' );
+		namecon = document.getElementById( 'year-display' );
 
 		//	Scene
 		container = document.createElement( 'div' );
@@ -56,12 +71,12 @@ var GlobeApp = (function() {
 		scene = new THREE.Scene();
 		scene.add( camera );
 		scene.add( ambientLight );
-
+/*
 		stats = new Stats();
 		stats.domElement.style.position = 'absolute';
 		stats.domElement.style.top = '0px';
 		container.appendChild( stats.domElement );
-
+*/
 
 		//	Events
 		container.addEventListener( 'mousedown', onMouseDown, false );
@@ -228,6 +243,7 @@ var GlobeApp = (function() {
 
 		newData = data[ name ],
 		newOpacity = nulls[ name ],
+		nameParts = name.split('-'),
 
 		diffD = new Array( vtl ),
 		diffO = new Array( vtl ),
@@ -236,6 +252,8 @@ var GlobeApp = (function() {
 		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 300 )
 			.easing( TWEEN.Easing.Cubic.EaseOut )
 			.onUpdate( update ).onComplete( complete );
+
+		namecon.innerHTML = months[ nameParts[1] ] +" "+ nameParts[0];
 
 		for( i = 0; i < vtl; i ++ ) {
 
@@ -378,7 +396,7 @@ var GlobeApp = (function() {
 		renderer.clear();
 		renderer.render( scene, camera );
 
-		stats.update();
+	//	stats.update();
 		TWEEN.update();
 	}
 
