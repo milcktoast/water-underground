@@ -19,7 +19,7 @@ var	GlobeApp = (function() {
 			"12":"December"
 		},
 
-		container, guicon, namecon, camera, scene, renderer, overRenderer, ambientLight,
+		container, guicon, namecon, camera, ctarget, scene, renderer, overRenderer, ambientLight,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
@@ -51,7 +51,7 @@ var	GlobeApp = (function() {
 		neutDisp = radius / 2.5;
 
 		guicon = document.getElementById( 'gui-container' );
-		namecon = document.getElementById( 'year-display' );
+		namecon = document.getElementById( 'date-display' );
 
 		//	Scene
 		container = document.createElement( 'div' );
@@ -59,6 +59,7 @@ var	GlobeApp = (function() {
 
 		camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
 		camera.position.z = distance;
+		ctarget = new THREE.Vector3( 0, 0, 0 );
 
 		renderer = new THREE.WebGLRenderer();
 		renderer.autoClear = false;
@@ -233,6 +234,7 @@ var	GlobeApp = (function() {
 	//	console.log( loadData.count, getData.count );
 
 		if( loadData.count == 1 ) updateDisplacement( name );
+		if( loadData.count == getData.count ) document.body.className = "loaded";
 	}
 	loadData.count = 0;
 
@@ -322,7 +324,7 @@ var	GlobeApp = (function() {
 
 	function removeClass( ele, cls ) {
 
-		if ( hasClass( ele, cls )) {
+		if( hasClass( ele, cls )) {
 			var reg = new RegExp('(\\s|^)'+ cls +'(\\s|$)');
 			ele.className = ( ele.className.replace( reg,' ' ) ).replace( /^[ ]+|[ ]+$/, '' );
 		}
@@ -330,13 +332,32 @@ var	GlobeApp = (function() {
 
 	function guiGo( event ) {
 	var node = this,
-		curr = guiGo.current || node;
+		curr = guiGo.current || node,
+		wait;
 
-		removeClass( curr, 'active' );
-		addClass( node, 'active' );
+		node.addEventListener( 'mouseout', guiOut, false );
+		wait = setTimeout( update, 200 );
 
-		guiGo.current = node;
-		updateDisplacement( node.getAttribute( 'data-date' ) );
+		function guiOut( event ) {
+
+			clearTimeout( wait );
+			cleanEvents();
+		}
+
+		function update() {
+
+			removeClass( curr, 'active' );
+			addClass( node, 'active' );
+			cleanEvents();
+
+			guiGo.current = node;
+			updateDisplacement( node.getAttribute( 'data-date' ) );
+		}
+
+		function cleanEvents() {
+
+			node.removeEventListener( 'mouseout', guiOut, false );
+		}
 	}
 
 	function onKeyDown( event ) {
@@ -348,16 +369,16 @@ var	GlobeApp = (function() {
 			case 39 : // <
 
 				node = curr.previousSibling;
-				updateGo();
+				update();
 			break;
 			case 37 : // >
 
 				node = curr.nextSibling;
-				updateGo();
+				update();
 			break;
 		}
 
-		function updateGo() {
+		function update() {
 
 			if( !node ) return false;
 			date = node.getAttribute( 'data-date' );
@@ -446,13 +467,15 @@ var	GlobeApp = (function() {
 
 		rotation.x += ( target.x - rotation.x ) * 0.1;
 		rotation.y += ( target.y - rotation.y ) * 0.1;
-		distance +=  ( distanceTarget - distance );
+		distance += ( distanceTarget - distance );
 
 		camera.position.x = distance * Math.sin( rotation.x ) * Math.cos(rotation.y);
 		camera.position.y = distance * Math.sin( rotation.y );
 		camera.position.z = distance * Math.cos( rotation.x ) * Math.cos(rotation.y);
 
-		camera.lookAt( new THREE.Vector3( 0, -camera.position.y / 10, 0 ));
+		ctarget.y = -camera.position.y / 10; 
+
+		camera.lookAt( ctarget );
 
 		renderer.clear();
 		renderer.render( scene, camera );
