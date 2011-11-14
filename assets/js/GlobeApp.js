@@ -1,5 +1,5 @@
-//	App Wrapper
-var GlobeApp = (function() {
+//	Globey
+var	GlobeApp = (function() {
 	var	data = {},
 		nulls = {},
 
@@ -79,6 +79,7 @@ var GlobeApp = (function() {
 */
 
 		//	Events
+		document.addEventListener( 'keydown', onKeyDown, false );
 		container.addEventListener( 'mousedown', onMouseDown, false );
 		container.addEventListener( 'mousewheel', onMouseWheel, false );
 		window.addEventListener( 'resize', onWindowResize, false );
@@ -193,6 +194,10 @@ var GlobeApp = (function() {
 
 		}
 
+		seg = document.createElement( 'div' );
+		seg.setAttribute( 'class', 'loading dummy' );
+		guicon.appendChild( seg );
+
 		function makeRequest( src, elem ) {
 		var	json, xhr = new XMLHttpRequest();
 
@@ -205,7 +210,7 @@ var GlobeApp = (function() {
 
 						json = JSON.parse( xhr.responseText );
 						elem.setAttribute( 'class', 'loaded' );
-						elem.addEventListener( 'mouseover', onClickyClick );
+						elem.addEventListener( 'mouseover', guiGo );
 
 						loadData( json.year, json.month, json.data );
 					}
@@ -225,9 +230,9 @@ var GlobeApp = (function() {
 		loadData.count ++;
 		data[ name ] = ndata;
 		nulls[ name ] = evaluateNull( ndata );
-		console.log( loadData.count, getData.count );
+	//	console.log( loadData.count, getData.count );
 
-		if( name == '2011-05' ) updateDisplacement( name );
+		if( loadData.count == 1 ) updateDisplacement( name );
 	}
 	loadData.count = 0;
 
@@ -277,7 +282,7 @@ var GlobeApp = (function() {
 		}
 		function complete() {
 
-			console.log( 'complete' );
+		//	console.log( 'complete' );
 		}
 
 	}
@@ -297,7 +302,7 @@ var GlobeApp = (function() {
 	//	UI
 	function equalizeGuis() {
 	var	e, el = guis.length,
-		ewidth = Math.ceil( window.innerWidth / el );
+		ewidth = Math.floor( window.innerWidth / el );
 
 		for( e = 0; e < el; e ++ ) {
 
@@ -305,9 +310,65 @@ var GlobeApp = (function() {
 		}
 	}
 
-	function onClickyClick( event ) {
+	function hasClass( ele, cls ) {
 
-		updateDisplacement( this.getAttribute( 'data-date' ) );
+		return ele.className.match( new RegExp('(\\s|^)'+ cls +'(\\s|$)') );
+	}
+
+	function addClass( ele, cls ) {
+
+		if( !hasClass( ele, cls )) ele.className += " "+ cls;
+	}
+
+	function removeClass( ele, cls ) {
+
+		if ( hasClass( ele, cls )) {
+			var reg = new RegExp('(\\s|^)'+ cls +'(\\s|$)');
+			ele.className = ( ele.className.replace( reg,' ' ) ).replace( /^[ ]+|[ ]+$/, '' );
+		}
+	}
+
+	function guiGo( event ) {
+	var node = this,
+		curr = guiGo.current || node;
+
+		removeClass( curr, 'active' );
+		addClass( node, 'active' );
+
+		guiGo.current = node;
+		updateDisplacement( node.getAttribute( 'data-date' ) );
+	}
+
+	function onKeyDown( event ) {
+	var	node, date,
+		curr = guiGo.current || guis[0];
+
+		switch( event.keyCode ) {
+
+			case 39 : // <
+
+				node = curr.previousSibling;
+				updateGo();
+			break;
+			case 37 : // >
+
+				node = curr.nextSibling;
+				updateGo();
+			break;
+		}
+
+		function updateGo() {
+
+			if( !node ) return false;
+			date = node.getAttribute( 'data-date' );
+			if( !date ) return false;
+
+			updateDisplacement( date );
+
+			removeClass( curr, 'active' );
+			addClass( node, 'active' );
+			guiGo.current = node;
+		}
 	}
 
 	function onMouseDown( event ) {
