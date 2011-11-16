@@ -169,7 +169,7 @@ var	GlobeApp = (function() {
 
 		for( yr = 2011; yr >= 2002; yr -- ) {
 
-			for( mo = 12; mo > 2; mo -- ) {
+			for( mo = 12; mo > 0; mo -- ) {
 
 				if( yr == 2011 && mo > 5 ) continue;
 				if( yr == 2002 && mo < 4 ) break;
@@ -189,7 +189,6 @@ var	GlobeApp = (function() {
 				getData.count ++;
 
 				makeRequest( srcBase + yr +"."+ mo +".json", seg );
-				//data[ yr + "-" + mo ] = { src : srcBase + yr +"."+ mo +".json" };
 
 			}
 
@@ -218,6 +217,8 @@ var	GlobeApp = (function() {
 				}
 			};
 
+			xhr.setRequestHeader( "Content-Encoding", "gzip" );
+			xhr.setRequestHeader( "Content-Type", "application/json" );
 			xhr.send( null );
 
 		}
@@ -295,7 +296,7 @@ var	GlobeApp = (function() {
 
 		for( i = 0; i < il; i ++ ) {
 
-			ndata[ i ] = data[ i ] == null ? 0.0 : 1.0;
+			ndata[ i ] = data[ i ] == "" ? 0.0 : 1.0;
 		}
 
 		return ndata;
