@@ -12,8 +12,8 @@
 	<title>Water Underground</title>
 	<meta name="description" content="Interactive visualization of global ground-water fluctuations on a monthly basis from 2002 to present."/>
 	<style type="text/css">
-		body { margin: 0; overflow: hidden; background: #111; }
-		#gui-container { 
+		body { margin: 0; overflow: hidden; background: #111; font-size: 13px; font-family: monospace; }
+		#gui-container {
 			position: absolute; overflow: hidden; width: 200%; bottom: 0; right: 0;
 		}
 		#gui-container div { 
@@ -38,6 +38,9 @@
 			position: absolute; display: none; bottom: 35px; right: 14px; width: 31px; height: 31px; 
 			background: url(img/loader.gif) no-repeat; z-index: 1;
 		}
+		#gl-error { margin: 40px auto; max-width: 400px; text-align: center; color: #fff; }
+		a, a:visited { color: cyan; text-decoration: none; -webkit-transition: color 200ms ease-out; }
+		a:hover { color: #444; }
 	</style>
 	<script type="text/javascript">
 	var	_gaq = _gaq || [];

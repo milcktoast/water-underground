@@ -44,6 +44,9 @@ var	GlobeApp = (function() {
 
 //	Init
 	(function() {
+
+		if( !validateWebGL()) return false;
+
 	var	latitude, longitude, latPos, longPos,
 		x0, y0, z0, v0,
 
@@ -156,10 +159,41 @@ var	GlobeApp = (function() {
 		scene.add( globe );
 
 		getData();
-		animate();
 
 	}());
 
+	//	Check for webGL support
+	function validateWebGL() {
+	var	gl, elem, link, canvas, error = false;
+
+		gl = window.WebGLRenderingContext;
+		if ( !gl ) {
+			error = "your browser has no idea what WebGL is :("
+		}
+
+		canvas = document.createElement('canvas');
+		gl = canvas.getContext("experimental-webgl");
+		if( !gl ) {
+
+			error = "your browser could not initialize WebGL. You probably need to update your drivers or get a new browser.";
+		}
+
+		if( error ) {
+
+			elem = document.createElement('div');
+			elem.setAttribute( 'id', 'gl-error' );
+			elem.innerHTML = "This visualization requires WebGL. However, "+ error +
+				"<br /> For more info, check out: <a href='http://get.webgl.org/'>get.webgl.org</a>"+
+				"<br /> Also, for a screen-recording of the visualization, view: <a href='http://vimeo.com/32062020'>vimeo.com/32062020</a>";
+			document.body.appendChild( elem );
+
+			document.body.setAttribute( 'class', 'error' );
+
+			return false;
+		}
+
+		return true;
+	}
 
 	function getData() {
 	var	s, yr, mo, seg,
@@ -184,8 +218,6 @@ var	GlobeApp = (function() {
 				guicon.appendChild( seg );
 				guis.push( seg );
 
-				equalizeGuis();
-
 				getData.count ++;
 
 				makeRequest( srcBase + yr +"."+ mo +".json", seg );
@@ -193,6 +225,8 @@ var	GlobeApp = (function() {
 			}
 
 		}
+
+		equalizeGuis();
 
 		seg = document.createElement( 'div' );
 		seg.setAttribute( 'class', 'loading dummy' );
@@ -234,7 +268,11 @@ var	GlobeApp = (function() {
 		nulls[ name ] = evaluateNull( ndata );
 	//	console.log( loadData.count, getData.count );
 
-		if( loadData.count == 1 ) updateDisplacement( name );
+		if( loadData.count == 1 ) {
+
+			animate();
+			updateDisplacement( name );
+		}
 		if( loadData.count == getData.count ) document.body.className = "loaded";
 	}
 	loadData.count = 0;
@@ -261,7 +299,7 @@ var	GlobeApp = (function() {
 			.easing( TWEEN.Easing.Cubic.EaseOut )
 			.onUpdate( update ).onComplete( complete );
 
-		namecon.innerHTML = months[ nameParts[1] ] +" "+ nameParts[0];
+		namecon.textContent = months[ nameParts[1] ] +" "+ nameParts[0];
 
 		for( i = 0; i < vtl; i ++ ) {
 
