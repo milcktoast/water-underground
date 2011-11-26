@@ -19,7 +19,8 @@ var	GlobeApp = (function() {
 			"12":"December"
 		},
 
-		container, guicon, namecon, camera, ctarget, scene, renderer, overRenderer, ambientLight,
+		container, guicon, namecon, aboutcon,
+		camera, ctarget, scene, renderer, overRenderer, ambientLight,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
@@ -55,6 +56,9 @@ var	GlobeApp = (function() {
 
 		guicon = document.getElementById( 'gui-container' );
 		namecon = document.getElementById( 'date-display' );
+
+		aboutcon = document.getElementById( 'about' );
+		document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
 
 		//	Scene
 		container = document.createElement( 'div' );
@@ -523,6 +527,23 @@ var	GlobeApp = (function() {
 		TWEEN.update();
 	}
 
+	function toggleAbout( event ) {
+	var	isopen = toggleAbout.open,
+		cclass = isopen ? "" : "show";
+
+		aboutcon.className = "pre-show";
+		setTimeout( function() { 
+
+			addClass( aboutcon, cclass );
+			toggleAbout.open = !isopen;
+
+		}, 220 );
+
+		if( !isopen ) container.addEventListener( 'mousedown', toggleAbout, false );
+		else container.removeEventListener( 'mousedown', toggleAbout, false );
+
+	}
+	toggleAbout.open = false;
 
 	//	clone objects
 	function cloneObj( object ) {

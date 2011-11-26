@@ -1,0 +1,42 @@
+/*
+ *	Water Underground
+ *
+*/
+
+body { margin: 0; overflow: hidden; color: #fff; background: #111; font-size: 13px; font-family: monospace; }
+
+#about {
+	position: absolute; top: 12%; left: 50%; margin-left: -150px; padding: 30px; width: 300px;
+	background: #fff; color: #111; background: rgba(255,255,255,0.9); color: rgba(20,20,20,0.8);
+	display: none; opacity: 0; -webkit-transition: opacity 200ms ease-out;
+}
+#about.pre-show { display: block; }
+#about.show { opacity: 1; }
+
+#gui-container {
+	position: absolute; overflow: hidden; width: 200%; bottom: 0; right: 0;
+}
+#gui-container div { 
+	float: right; height: 30px;  background: #fff;
+	border-top: 1px solid cyan;
+	-webkit-transition-property: opacity, width;
+	-webkit-transition: 300ms ease-out;
+}
+#gui-container .loading { opacity: 0.05 }
+#gui-container .loaded { opacity: 0.25; cursor: pointer; }
+#gui-container .loaded:hover { opacity: 0.5 }
+#gui-container .active { opacity: 0.9!important; }
+#gui-container .dummy { width: 300px; cursor: auto; opacity: 0.25; }
+#meta-data {
+	position: absolute; right: 14px; bottom: 35px; font-size: 24px; color: #fff; opacity: 0.8;
+	text-align: right; -webkit-transition: right 200ms ease-out;
+}
+.loading #meta-data { right: 55px; }
+.loading #loader { display: block; }
+#loader {
+	position: absolute; display: none; bottom: 35px; right: 14px; width: 31px; height: 31px; 
+	background: url(../img/loader.gif) no-repeat; z-index: 1;
+}
+#gl-error { margin: 40px auto; max-width: 400px; text-align: center; color: #fff; }
+a, .button, a:visited { color: #3CA2BA; text-decoration: none; cursor: pointer; -webkit-transition: color 200ms ease-out; }
+a:hover, .button:hover { color: #444; }
