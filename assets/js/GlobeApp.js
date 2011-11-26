@@ -528,13 +528,14 @@ var	GlobeApp = (function() {
 	}
 
 	function toggleAbout( event ) {
-	var	isopen = toggleAbout.open,
-		cclass = isopen ? "" : "show";
+	var	isopen = toggleAbout.open;
 
 		aboutcon.className = "pre-show";
 		setTimeout( function() { 
 
-			addClass( aboutcon, cclass );
+			if( !isopen ) addClass( aboutcon, "show" );
+			else aboutcon.className = "";
+
 			toggleAbout.open = !isopen;
 
 		}, 220 );
