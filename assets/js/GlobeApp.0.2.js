@@ -334,8 +334,8 @@ var	GlobeApp = (function() {
 
 	function parseData( name, ndata ) {
 	var	i, il = ndata.length, curr, isNull,
-		tvals = 0, accum = 0,
-		max = 0, min = 100,
+//		tvals = 0, accum = 0,
+//		max = 0, min = 100,
 		opac = new Array( il );
 
 		for( i = 0; i < il; i ++ ) {
@@ -344,22 +344,22 @@ var	GlobeApp = (function() {
 			isNull = curr == "";
 
 			opac[ i ] = isNull ? 0.0 : 1.0;
-			if( isNull ) continue;
+/*			if( isNull ) continue;
 
 			max = curr > max ? curr : max;
 			min = curr < min ? curr : min;
 			accum += curr;
 
-			tvals ++;
+			tvals ++;*/
 		}
 
 		data[ name ] = ndata;
 		nulls[ name ] = opac;
-		peaks[ name ] = {
+	/*	peaks[ name ] = {
 			'max': max,
 			'min': min,
 			'avg': Math.round( (accum / tvals) * 100 ) / 100
-		};
+		};*/
 	}
 
 	//	UI
@@ -605,9 +605,9 @@ var	GlobeApp = (function() {
 		'updateDisplacement' : updateDisplacement,
 		'renderer' : renderer,
 		'geometry' : globe,
-		'data' : data,
-		'peaks' : peaks,
-		'savePeaks' : savePeaks
+		'data' : data
+//		'peaks' : peaks,
+//		'savePeaks' : savePeaks
 	};
 
 
