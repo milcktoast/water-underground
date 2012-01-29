@@ -2,6 +2,7 @@
 var	GlobeApp = (function() {
 	var	data = {},
 		nulls = {},
+		peaks = {},
 
 		guis = new Array(),
 		months = {
@@ -51,8 +52,8 @@ var	GlobeApp = (function() {
 	var	latitude, longitude, latPos, longPos,
 		x0, y0, z0, v0,
 
-		radius = 480, 
-		neutDisp = radius / 2.5;
+		radius = 480,
+		neutDisp = -radius / 2.5;
 
 		guicon = document.getElementById( 'gui-container' );
 		namecon = document.getElementById( 'date-display' );
@@ -268,8 +269,7 @@ var	GlobeApp = (function() {
 	var	name = year + '-' + month;
 
 		loadData.count ++;
-		data[ name ] = ndata;
-		nulls[ name ] = evaluateNull( ndata );
+		parseData( name, ndata );
 	//	console.log( loadData.count, getData.count );
 
 		if( loadData.count == 1 ) {
@@ -332,16 +332,34 @@ var	GlobeApp = (function() {
 
 	}
 
-	function evaluateNull( data ) {
-	var	i, il = data.length,
-		ndata = new Array( il );
+	function parseData( name, ndata ) {
+	var	i, il = ndata.length, curr, isNull,
+		tvals = 0, accum = 0,
+		max = 0, min = 100,
+		opac = new Array( il );
 
 		for( i = 0; i < il; i ++ ) {
 
-			ndata[ i ] = data[ i ] == "" ? 0.0 : 1.0;
+			curr = ndata[ i ];
+			isNull = curr == "";
+
+			opac[ i ] = isNull ? 0.0 : 1.0;
+			if( isNull ) continue;
+
+			max = curr > max ? curr : max;
+			min = curr < min ? curr : min;
+			accum += curr;
+
+			tvals ++;
 		}
 
-		return ndata;
+		data[ name ] = ndata;
+		nulls[ name ] = opac;
+		peaks[ name ] = {
+			'max': max,
+			'min': min,
+			'avg': Math.round( (accum / tvals) * 100 ) / 100
+		};
 	}
 
 	//	UI
@@ -560,7 +578,26 @@ var	GlobeApp = (function() {
 		}
 
 		return newObj;
-	};
+	}
+
+	function savePeaks() {
+	var	i, month,
+		sep = ",",
+		text = "month,max,min,average\n";
+
+		for( i in peaks ) {
+
+			month = peaks[ i ];
+			text += i + sep + month['max'] + sep + month['min'] + sep + month['avg'] + "\n";
+		}
+
+		exportText( text );
+	}
+
+	function exportText( text ) {
+	var	content = "data:application/plain;charset=utf-8," + escape( text );
+	    window.open( content, "data", "width=500,height=10" );
+	}
 
 	//	public functions and vars
 	return {
@@ -568,7 +605,9 @@ var	GlobeApp = (function() {
 		'updateDisplacement' : updateDisplacement,
 		'renderer' : renderer,
 		'geometry' : globe,
-		'data' : data
+		'data' : data,
+		'peaks' : peaks,
+		'savePeaks' : savePeaks
 	};
 
 

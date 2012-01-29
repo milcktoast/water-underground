@@ -55,9 +55,9 @@
 
 		 void main() {
 
-			vDisplace = displacement;
+			vDisplace = -displacement;
 			fade = opacity;
-			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * -displacement * 2.5 ), 1.0 );
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * displacement * 2.5 ), 1.0 );
 		 }
 
 	</script>
