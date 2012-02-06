@@ -35,17 +35,28 @@
 	<div id="loader"></div>
 
 	<article id="about">
-		<p>You are viewing an interactive visualization of global ground-water fluctuations on a monthly basis from 2002 to present.</p>
-		<p>This project is part of a competition <a href="//www.visualizing.org/visualizations/water-underground">proposal</a> by <a href="//twitter.com/jpweeks">@jpweeks</a> and <a href="//twitter.com/megguerin">@megguerin</a> for a live info-graphic display in Times Square, NYC.  The data is <a href="http://www.visualizing.org/datasets/global-water-mass-grace-satellite-monthly-data-2002-11">publicly available</a> and provided by <a href="//visualizing.org">Visualizing.org</a> in collaboration with UC Center for Hydrologic Modeling.</p>
-		<p>Rendering is powered by <a href="//github.com/mrdoob/three.js/">Three.js</a>, a 3D rendering engine leveraging experimental browser technologies including WebGL.</p>
+		<p>
+			You are viewing an interactive visualization of global ground-water fluctuations on a monthly basis from 2002 to present.
+		</p>
+		<p>
+			This project is part of a competition <a href="//www.visualizing.org/visualizations/water-underground">proposal</a> 
+			by <a href="//twitter.com/jpweeks">@jpweeks</a> and <a href="//twitter.com/megguerin">@megguerin</a> 
+			for a live info-graphic display in Times Square, NYC.  
+			The data is <a href="http://www.visualizing.org/datasets/global-water-mass-grace-satellite-monthly-data-2002-11">publicly available</a> 
+			and provided by <a href="//visualizing.org">Visualizing.org</a> in collaboration with UC Center for Hydrologic Modeling.
+		</p>
+		<p>
+			Rendering is powered by <a href="//github.com/mrdoob/three.js/">Three.js</a>, 
+			a 3D rendering engine leveraging experimental browser technologies including WebGL.
+		</p>
 	</article>
 
-	<script type="text/javascript" src="js/Three_dev_r46.js"></script>
+	<script type="text/javascript" src="js/three.js/Three_r47.js"></script>
 	<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
 	<script type="text/javascript" src="js/Tween.js"></script>
 	<!-- script type="text/javascript" src="js/Stats.js"></script -->
 
-	<script id="vs" type="x-shader/x-vertex">
+	<script id="vs-geo" type="x-shader/x-vertex">
 
 		attribute float displacement;
 		varying float vDisplace;
@@ -61,7 +72,7 @@
 		 }
 
 	</script>
-	<script id="fs" type="x-shader/x-fragment">
+	<script id="fs-geo" type="x-shader/x-fragment">
 
 		varying float vDisplace;
 		varying float fade;
@@ -79,6 +90,28 @@
 		 }
 
 	</script>
+	<script id="vs-pin" type="x-shader/x-vertex">
+
+		 void main() {
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) ), 1.0 );
+		 }
+
+	</script>
+	<script id="fs-pin" type="x-shader/x-fragment">
+
+		void main() {
+
+			float depth = gl_FragCoord.z;
+
+			gl_FragColor = vec4(
+				1.0, 1.0, 1.0,
+				smoothstep( 0.97, 0.90, depth ) * 0.9
+			);
+		 }
+
+	</script>
+	
 
 	<script type="text/javascript" src="js/GlobeApp.0.2.js"></script>
 
