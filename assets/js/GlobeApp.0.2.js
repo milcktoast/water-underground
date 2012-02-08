@@ -21,6 +21,18 @@
 		return [ lat, lon ];
 	};
 
+	THREE.Object3D.prototype.lookAt = function ( vector ) {
+
+		this.matrix.lookAt( this.position, vector, this.up );
+
+		if ( this.rotationAutoUpdate ) {
+
+			this.rotation.setRotationFromMatrix( this.matrix );
+
+		}
+
+	};
+
 }( THREE ));
 
 //	Globey
@@ -47,7 +59,7 @@ var	GlobeApp = (function() {
 
 		container, guicon, namecon, aboutcon,
 		camera, ctarget, scene, renderer, overRenderer, ambientLight,
-		projector, hitSphere, hitTarget, hitLine, hitLineMat,
+		projector, hitSphere, hitTarget, hitLine, hitLineMat, hitPent,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
@@ -202,6 +214,18 @@ var	GlobeApp = (function() {
 		});
 		hitLineMat.linewidth = 2;
 
+		var hitPentMat = new THREE.ShaderMaterial({
+
+			uniforms: {
+
+				amount : { type: "f", value: 0 }
+			},
+			vertexShader: document.getElementById( 'vs-pin' ).textContent,
+			fragmentShader: document.getElementById( 'fs-pin' ).textContent,
+			depthTest: false
+		});
+		hitPentMat.linewidth = 4;
+
 		hitSphere = new THREE.SphereGeometry( radius, 14, 14 );
 		hitTarget = new THREE.Mesh( hitSphere, new THREE.MeshBasicMaterial() );
 		hitTarget.visible = false;
@@ -210,7 +234,29 @@ var	GlobeApp = (function() {
 		hitLineGeom.vertices = [ new THREE.Vertex(), new THREE.Vertex() ];
 		hitLine = new THREE.Line( hitLineGeom, hitLineMat );
 
+		var hitPentGeom = new THREE.Geometry();
+
+		function polyShape( geom, edges, radius ) {
+		var	i, pos, first,
+			step = Math.PI * 2 / edges;
+
+			for( i = 0; i <= edges; i ++ ) {
+
+				x = Math.cos( step * i ) * radius;
+				y = Math.sin( step * i ) * radius;
+
+				pos = i < edges ? new THREE.Vector3( x, y, 0 ) : first;
+				if( i == 0 ) first = pos;
+
+				geom.vertices.push( new THREE.Vertex( pos ));
+			}
+		}
+
+		polyShape( hitPentGeom, 10, 10 );
+		hitPent = new THREE.Line( hitPentGeom, hitPentMat );
+
 		scene.add( hitLine );
+		scene.add( hitPent );
 		scene.add( lineGroup );
 		scene.add( hitTarget );
 
@@ -555,7 +601,10 @@ var	GlobeApp = (function() {
 				verts = hitLineGeom.vertices;
 				dir = point.clone().normalize();
 				v0 = dir.clone().multiplyScalar( 10000 );
-				v1 = dir.clone().multiplyScalar( 450 );
+				v1 = dir.clone().multiplyScalar( 350 );
+
+				hitPent.position.copy( point );
+				hitPent.lookAt( new THREE.Vector3( 0, 0, 0 ));
 
 				verts[0].position = v0;
 				verts[1].position = v1;
@@ -620,15 +669,20 @@ var	GlobeApp = (function() {
 		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
 	}
 
+	var counter = 0;
 	function animate() {
 
 		requestAnimationFrame( animate );
 		render();
+		counter = counter < pi ? counter + pi / 128 : 0;
 	}
 
 	function render() {
+	var	scale = Math.sin( counter );
 
 		zoom( curZoomSpeed );
+
+		hitPent.scale.set( scale, scale, 1 );
 
 		rotation.x += ( target.x - rotation.x ) * 0.1;
 		rotation.y += ( target.y - rotation.y ) * 0.1;
