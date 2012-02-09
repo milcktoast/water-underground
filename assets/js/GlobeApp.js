@@ -1,9 +1,47 @@
+//	Modifications to THREE.js
+(function( THREE ) {
+
+	THREE.Vector3.prototype.sphereCoord = function( sphereRadius ) {
+	var lat, lon;
+
+		function toDeg( rad ) {
+			return rad * ( 180 / Math.PI );
+		}
+		function toHalves( num ) {
+			return Math.round( num * 2 ) / 2;
+		}
+
+		// TODO: these are hacked up a bit, need to resolve original plotting and coordinate system...
+		lat = -toDeg( Math.acos( this.y / sphereRadius )) + 90; //theta
+		lon = toDeg( Math.atan( this.x / this.z )) - 90 + ( this.z > 0 ? 180 : 0 ); //phi
+
+		lat = toHalves( lat );
+		lon = toHalves( lon );
+
+		return [ lat, lon ];
+	};
+
+	THREE.Object3D.prototype.lookAt = function ( vector ) {
+
+		this.matrix.lookAt( this.position, vector, this.up );
+
+		if ( this.rotationAutoUpdate ) {
+
+			this.rotation.setRotationFromMatrix( this.matrix );
+
+		}
+
+	};
+
+}( THREE ));
+
 //	Globey
 var	GlobeApp = (function() {
 	var	data = {},
 		nulls = {},
+		peaks = {},
 
-		guis = new Array(),
+		guis = [],
 		months = {
 			"01":"January",
 			"02":"February",
@@ -19,12 +57,15 @@ var	GlobeApp = (function() {
 			"12":"December"
 		},
 
-		container, guicon, namecon, camera, ctarget, scene, renderer, overRenderer, ambientLight,
+		container, guicon, namecon, aboutcon,
+		camera, ctarget, scene, renderer, overRenderer, ambientLight,
+		projector, hitSphere, hitTarget, hitLine, hitLineMat, hitPent,
 		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
 		pihalf = pi / 2,
 
+		keys = { shift: false, ctrl: false },
 		mouse = { x: 0, y: 0 },
 		mouseOnDown = { x: 0, y: 0 },
 
@@ -39,19 +80,25 @@ var	GlobeApp = (function() {
 		curZoomSpeed = 0,
 		zoomSpeed = 50,
 
+		radius = 480,
 		linewidth = 2;
 
 
 //	Init
 	(function() {
+
+		if( !validateWebGL()) return false;
+
 	var	latitude, longitude, latPos, longPos,
 		x0, y0, z0, v0,
 
-		radius = 480, 
-		neutDisp = radius / 2.5;
+		neutDisp = -radius / 2.5;
 
 		guicon = document.getElementById( 'gui-container' );
 		namecon = document.getElementById( 'date-display' );
+
+		aboutcon = document.getElementById( 'about' );
+		document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
 
 		//	Scene
 		container = document.createElement( 'div' );
@@ -60,6 +107,8 @@ var	GlobeApp = (function() {
 		camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
 		camera.position.z = distance;
 		ctarget = new THREE.Vector3( 0, 0, 0 );
+
+		projector = new THREE.Projector();
 
 		renderer = new THREE.WebGLRenderer();
 		renderer.autoClear = false;
@@ -81,6 +130,7 @@ var	GlobeApp = (function() {
 
 		//	Events
 		document.addEventListener( 'keydown', onKeyDown, false );
+		document.addEventListener( 'keyup', onKeyUp, false );
 		container.addEventListener( 'mousedown', onMouseDown, false );
 		container.addEventListener( 'mousewheel', onMouseWheel, false );
 		window.addEventListener( 'resize', onWindowResize, false );
@@ -98,6 +148,7 @@ var	GlobeApp = (function() {
 		lineGeom = new THREE.Geometry();
 
 		matAtts = {
+
 			displacement : { type: 'f', value: [] },
 			opacity : { type: 'f', value: [] }
 		};
@@ -108,11 +159,10 @@ var	GlobeApp = (function() {
 			uniforms: {
 
 				amount : { type: "f", value: 0 }
-
 			},
 
-			vertexShader: document.getElementById( 'vs' ).textContent,
-			fragmentShader: document.getElementById( 'fs' ).textContent,
+			vertexShader: document.getElementById( 'vs-geo' ).textContent,
+			fragmentShader: document.getElementById( 'fs-geo' ).textContent,
 
 			depthTest: false
 		});
@@ -150,16 +200,102 @@ var	GlobeApp = (function() {
 		lineGroup = new THREE.Line( lineGeom, lineMat );
 		lineGroup.dynamic = true;
 
-		globe = new THREE.Object3D();
+		//	Hit box and selected region indicator
 
-		globe.add( lineGroup );
-		scene.add( globe );
+		hitLineMat = new THREE.ShaderMaterial({
+
+			uniforms: {
+
+				amount : { type: "f", value: 0 }
+			},
+			vertexShader: document.getElementById( 'vs-pin' ).textContent,
+			fragmentShader: document.getElementById( 'fs-pin' ).textContent,
+			depthTest: false
+		});
+		hitLineMat.linewidth = 2;
+
+		var hitPentMat = new THREE.ShaderMaterial({
+
+			uniforms: {
+
+				amount : { type: "f", value: 0 }
+			},
+			vertexShader: document.getElementById( 'vs-pin' ).textContent,
+			fragmentShader: document.getElementById( 'fs-pin' ).textContent,
+			depthTest: false
+		});
+		hitPentMat.linewidth = 4;
+
+		hitSphere = new THREE.SphereGeometry( radius, 14, 14 );
+		hitTarget = new THREE.Mesh( hitSphere, new THREE.MeshBasicMaterial() );
+		hitTarget.visible = false;
+
+		hitLineGeom = new THREE.Geometry();
+		hitLineGeom.vertices = [ new THREE.Vertex(), new THREE.Vertex() ];
+		hitLine = new THREE.Line( hitLineGeom, hitLineMat );
+
+		var hitPentGeom = new THREE.Geometry();
+
+		function polyShape( geom, edges, radius ) {
+		var	i, pos, first,
+			step = Math.PI * 2 / edges;
+
+			for( i = 0; i <= edges; i ++ ) {
+
+				x = Math.cos( step * i ) * radius;
+				y = Math.sin( step * i ) * radius;
+
+				pos = i < edges ? new THREE.Vector3( x, y, 0 ) : first;
+				if( i === 0 ) first = pos;
+
+				geom.vertices.push( new THREE.Vertex( pos ));
+			}
+		}
+
+		polyShape( hitPentGeom, 10, 10 );
+		hitPent = new THREE.Line( hitPentGeom, hitPentMat );
+
+		scene.add( hitLine );
+		scene.add( hitPent );
+		scene.add( lineGroup );
+		scene.add( hitTarget );
 
 		getData();
-		animate();
 
 	}());
 
+	//	Check for webGL support
+	function validateWebGL() {
+	var	gl, elem, link, canvas, error = false;
+
+		gl = window.WebGLRenderingContext;
+		if ( !gl ) {
+			error = "your browser has no idea what WebGL is :(";
+		}
+
+		canvas = document.createElement('canvas');
+		gl = canvas.getContext("experimental-webgl");
+		if( !gl ) {
+
+			error = "your browser could not initialize WebGL. You probably need to update your drivers or get a new browser.";
+		}
+
+		if( error ) {
+
+			elem = document.createElement('div');
+			elem.setAttribute( 'id', 'gl-error' );
+			elem.innerHTML = "This visualization requires WebGL. However, "+ error +
+				"<br /> For more info, check out: <a href='http://get.webgl.org/'>get.webgl.org</a>"+
+				"<br /> Also, for a screen-recording of the visualization, view: <a href='http://vimeo.com/32062020'>vimeo.com/32062020</a>";
+			document.body.appendChild( elem );
+
+			document.body.setAttribute( 'class', 'error' );
+
+			return false;
+		}
+
+		return true;
+	}
 
 	function getData() {
 	var	s, yr, mo, seg,
@@ -174,8 +310,7 @@ var	GlobeApp = (function() {
 				if( yr == 2011 && mo > 5 ) continue;
 				if( yr == 2002 && mo < 4 ) break;
 
-				mo = new String( mo );
-				mo = mo.length < 2 ? "0"+ mo : mo;
+				mo = mo.toString().length < 2 ? "0"+ mo : mo;
 
 				seg = document.createElement( 'div' );
 				seg.setAttribute( 'class', 'loading' );
@@ -184,15 +319,14 @@ var	GlobeApp = (function() {
 				guicon.appendChild( seg );
 				guis.push( seg );
 
-				equalizeGuis();
-
 				getData.count ++;
 
 				makeRequest( srcBase + yr +"."+ mo +".json", seg );
 
 			}
-
 		}
+
+		equalizeGuis();
 
 		seg = document.createElement( 'div' );
 		seg.setAttribute( 'class', 'loading dummy' );
@@ -209,8 +343,12 @@ var	GlobeApp = (function() {
 					if ( xhr.status === 200 ) {
 
 						json = JSON.parse( xhr.responseText );
-						elem.setAttribute( 'class', 'loaded' );
-						elem.addEventListener( 'mouseover', guiGo );
+
+						if( elem ) {
+
+							elem.setAttribute( 'class', 'loaded' );
+							elem.addEventListener( 'mouseover', guiGo );
+						}
 
 						loadData( json.year, json.month, json.data );
 					}
@@ -230,11 +368,14 @@ var	GlobeApp = (function() {
 	var	name = year + '-' + month;
 
 		loadData.count ++;
-		data[ name ] = ndata;
-		nulls[ name ] = evaluateNull( ndata );
+		parseData( name, ndata );
 	//	console.log( loadData.count, getData.count );
 
-		if( loadData.count == 1 ) updateDisplacement( name );
+		if( loadData.count == 1 ) {
+
+			animate();
+			updateDisplacement( name );
+		}
 		if( loadData.count == getData.count ) document.body.className = "loaded";
 	}
 	loadData.count = 0;
@@ -261,7 +402,7 @@ var	GlobeApp = (function() {
 			.easing( TWEEN.Easing.Cubic.EaseOut )
 			.onUpdate( update ).onComplete( complete );
 
-		namecon.innerHTML = months[ nameParts[1] ] +" "+ nameParts[0];
+		namecon.textContent = months[ nameParts[1] ] +" "+ nameParts[0];
 
 		for( i = 0; i < vtl; i ++ ) {
 
@@ -290,16 +431,34 @@ var	GlobeApp = (function() {
 
 	}
 
-	function evaluateNull( data ) {
-	var	i, il = data.length,
-		ndata = new Array( il );
+	function parseData( name, ndata ) {
+	var	i, il = ndata.length, curr, isNull,
+//		tvals = 0, accum = 0,
+//		max = 0, min = 100,
+		opac = new Array( il );
 
 		for( i = 0; i < il; i ++ ) {
 
-			ndata[ i ] = data[ i ] == "" ? 0.0 : 1.0;
+			curr = ndata[ i ];
+			isNull = curr === "";
+
+			opac[ i ] = isNull ? 0.0 : 1.0;
+/*			if( isNull ) continue;
+
+			max = curr > max ? curr : max;
+			min = curr < min ? curr : min;
+			accum += curr;
+
+			tvals ++;*/
 		}
 
-		return ndata;
+		data[ name ] = ndata;
+		nulls[ name ] = opac;
+	/*	peaks[ name ] = {
+			'max': max,
+			'min': min,
+			'avg': Math.round( (accum / tvals) * 100 ) / 100
+		};*/
 	}
 
 	//	UI
@@ -367,6 +526,10 @@ var	GlobeApp = (function() {
 
 		switch( event.keyCode ) {
 
+			case 16 : // shift
+
+				keys.shift = true;
+			break;
 			case 39 : // <
 
 				node = curr.previousSibling;
@@ -393,7 +556,20 @@ var	GlobeApp = (function() {
 		}
 	}
 
+	function onKeyUp( event ) {
+
+		switch( event.keyCode ) {
+
+			case 16 : // shift
+
+				keys.shift = false;
+			break;
+		}
+	}
+
 	function onMouseDown( event ) {
+	var	vector, ray, intersects;
+
 		event.preventDefault();
 
 		container.addEventListener( 'mousemove', onMouseMove, false );
@@ -406,10 +582,41 @@ var	GlobeApp = (function() {
 		targetOnDown.x = target.x;
 		targetOnDown.y = target.y;
 
+		if( keys.shift ) {
+
+			vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
+			projector.unprojectVector( vector, camera );
+
+			ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
+			intersects = ray.intersectScene( scene );
+
+			if( intersects.length > 0 ) {
+			var	point, coords,
+				dir, verts, v0, v1;
+
+				point = intersects[0].point;
+				coords = point.sphereCoord( radius );
+				console.log( coords );
+
+				verts = hitLineGeom.vertices;
+				dir = point.clone().normalize();
+				v0 = dir.clone().multiplyScalar( 10000 );
+				v1 = dir.clone().multiplyScalar( 350 );
+
+				hitPent.position.copy( point );
+				hitPent.lookAt( new THREE.Vector3( 0, 0, 0 ));
+
+				verts[0].position = v0;
+				verts[1].position = v1;
+				hitLineGeom.__dirtyVertices = true;
+			}
+		}
+
 		container.style.cursor = 'move';
 	}
 
 	function onMouseMove( event ) {
+
 		mouse.x = - event.clientX;
 		mouse.y = event.clientY;
 
@@ -423,6 +630,7 @@ var	GlobeApp = (function() {
 	}
 
 	function onMouseUp( event ) {
+
 		container.removeEventListener( 'mousemove', onMouseMove, false );
 		container.removeEventListener( 'mouseup', onMouseUp, false );
 		container.removeEventListener( 'mouseout', onMouseOut, false );
@@ -430,12 +638,14 @@ var	GlobeApp = (function() {
 	}
 
 	function onMouseOut( event ) {
+
 		container.removeEventListener( 'mousemove', onMouseMove, false );
 		container.removeEventListener( 'mouseup', onMouseUp, false );
 		container.removeEventListener( 'mouseout', onMouseOut, false );
 	}
 
 	function onMouseWheel( event ) {
+
 		event.preventDefault();
 		if ( overRenderer ) {
 			zoom(event.wheelDeltaY * 0.3);
@@ -444,6 +654,7 @@ var	GlobeApp = (function() {
 	}
 
 	function onWindowResize( event ) {
+
 		console.log('resize');
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
@@ -452,19 +663,26 @@ var	GlobeApp = (function() {
 	}
 
 	function zoom( delta ) {
+
 		distanceTarget -= delta;
 		distanceTarget = distanceTarget > 2200 ? 2200 : distanceTarget;
 		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
 	}
 
+	var counter = 0;
 	function animate() {
+
 		requestAnimationFrame( animate );
 		render();
+		counter = counter < pi ? counter + pi / 128 : 0;
 	}
 
 	function render() {
+	var	scale = Math.sin( counter );
 
 		zoom( curZoomSpeed );
+
+		hitPent.scale.set( scale, scale, 1 );
 
 		rotation.x += ( target.x - rotation.x ) * 0.1;
 		rotation.y += ( target.y - rotation.y ) * 0.1;
@@ -485,12 +703,25 @@ var	GlobeApp = (function() {
 		TWEEN.update();
 	}
 
+	function toggleAbout( event ) {
+	var	isopen = toggleAbout.open;
+
+		if( !isopen ) addClass( aboutcon, "show" );
+		else aboutcon.className = "";
+
+		toggleAbout.open = !isopen;
+
+		if( !isopen ) container.addEventListener( 'mousedown', toggleAbout, false );
+		else container.removeEventListener( 'mousedown', toggleAbout, false );
+
+	}
+	toggleAbout.open = false;
 
 	//	clone objects
 	function cloneObj( object ) {
 	var newObj = ( object instanceof Array ) ? [] : {};
 
-		for ( i in object ) {
+		for ( var i in object ) {
 
 			if ( object[i] && typeof object[i] == "object" ) {
 
@@ -500,7 +731,27 @@ var	GlobeApp = (function() {
 		}
 
 		return newObj;
-	};
+	}
+
+	function savePeaks() {
+	var	month, sep = ",",
+		text = "month,max,min,average\n";
+
+		for( var i in peaks ) {
+
+			if( peaks.hasOwnProperty( i )) {
+				month = peaks[ i ];
+				text += i + sep + month.max + sep + month.min + sep + month.avg + "\n";
+			}
+		}
+
+		exportText( text );
+	}
+
+	function exportText( text ) {
+	var	content = "data:application/plain;charset=utf-8," + escape( text );
+	    window.open( content, "data", "width=500,height=10" );
+	}
 
 	//	public functions and vars
 	return {
@@ -509,6 +760,8 @@ var	GlobeApp = (function() {
 		'renderer' : renderer,
 		'geometry' : globe,
 		'data' : data
+//		'peaks' : peaks,
+//		'savePeaks' : savePeaks
 	};
 
 

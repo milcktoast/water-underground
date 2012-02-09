@@ -1,47 +1,6 @@
-//	Modifications to THREE.js
-(function( THREE ) {
-
-	THREE.Vector3.prototype.sphereCoord = function( sphereRadius ) {
-	var lat, lon;
-
-		function toDeg( rad ) {
-			return rad * ( 180 / Math.PI );
-		}
-		function toHalves( num ) {
-			return Math.round( num * 2 ) / 2;
-		}
-
-		// TODO: these are hacked up a bit, need to resolve original plotting and coordinate system...
-		lat = -toDeg( Math.acos( this.y / sphereRadius )) + 90; //theta
-		lon = toDeg( Math.atan( this.x / this.z )) - 90 + ( this.z > 0 ? 180 : 0 ); //phi
-
-		lat = toHalves( lat );
-		lon = toHalves( lon );
-
-		return [ lat, lon ];
-	};
-
-	THREE.Object3D.prototype.lookAt = function ( vector ) {
-
-		this.matrix.lookAt( this.position, vector, this.up );
-
-		if ( this.rotationAutoUpdate ) {
-
-			this.rotation.setRotationFromMatrix( this.matrix );
-
-		}
-
-	};
-
-}( THREE ));
-
-//	Globey
-var	GlobeApp = (function() {
-	var	data = {},
-		nulls = {},
-		peaks = {},
-
-		guis = [],
+//	WUG Controller
+var	WUG = (function() {
+	var	guis = [],
 		months = {
 			"01":"January",
 			"02":"February",
@@ -57,10 +16,13 @@ var	GlobeApp = (function() {
 			"12":"December"
 		},
 
+		// DOM
 		container, guicon, namecon, aboutcon,
-		camera, ctarget, scene, renderer, overRenderer, ambientLight,
-		projector, hitSphere, hitTarget, hitLine, hitLineMat, hitPent,
-		lineGroup, matAtts, lineMat, lineGeom, globe, dispAtts, dispAttVals, opacAtts, opacAttVals,
+		// Hit sphere ( for UI )
+		projector, hitSphere, hitTarget,
+		hitLine, hitLineMat, hitPent,
+		// Vis 
+		lineGroup, matAtts, lineMat, lineGeom, dispAtts, dispAttVals, opacAtts, opacAttVals,
 
 		pi = Math.PI,
 		pihalf = pi / 2,
@@ -78,10 +40,7 @@ var	GlobeApp = (function() {
 		distanceTarget = 1900,
 
 		curZoomSpeed = 0,
-		zoomSpeed = 50,
-
-		radius = 480,
-		linewidth = 2;
+		zoomSpeed = 50;
 
 
 //	Init
@@ -89,38 +48,11 @@ var	GlobeApp = (function() {
 
 		if( !validateWebGL()) return false;
 
-	var	latitude, longitude, latPos, longPos,
-		x0, y0, z0, v0,
-
-		neutDisp = -radius / 2.5;
-
 		guicon = document.getElementById( 'gui-container' );
 		namecon = document.getElementById( 'date-display' );
 
 		aboutcon = document.getElementById( 'about' );
 		document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
-
-		//	Scene
-		container = document.createElement( 'div' );
-		document.body.appendChild( container );
-
-		camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
-		camera.position.z = distance;
-		ctarget = new THREE.Vector3( 0, 0, 0 );
-
-		projector = new THREE.Projector();
-
-		renderer = new THREE.WebGLRenderer();
-		renderer.autoClear = false;
-		renderer.setClearColorHex( 0x000000, 0.0 );
-		renderer.setSize( window.innerWidth, window.innerHeight );
-		container.appendChild( renderer.domElement );
-
-		ambientLight = new THREE.AmbientLight( 0x606060 );
-
-		scene = new THREE.Scene();
-		scene.add( camera );
-		scene.add( ambientLight );
 /*
 		stats = new Stats();
 		stats.domElement.style.position = 'absolute';
@@ -144,121 +76,7 @@ var	GlobeApp = (function() {
 		}, false );
 
 
-		//	Geometry / materials
-		lineGeom = new THREE.Geometry();
-
-		matAtts = {
-
-			displacement : { type: 'f', value: [] },
-			opacity : { type: 'f', value: [] }
-		};
-
-		lineMat = new THREE.ShaderMaterial({
-
-			attributes : matAtts,
-			uniforms: {
-
-				amount : { type: "f", value: 0 }
-			},
-
-			vertexShader: document.getElementById( 'vs-geo' ).textContent,
-			fragmentShader: document.getElementById( 'fs-geo' ).textContent,
-
-			depthTest: false
-		});
-
-		lineMat.linewidth = linewidth;
-
-		dispAtts = matAtts.displacement;
-		dispAttVals = dispAtts.value;
-		opacAtts = matAtts.opacity;
-		opacAttVals = opacAtts.value;
-
-
-		//	Init globe vertices
-		for ( latitude = 180; latitude > 0; latitude -- ) {
-
-			latPos = ( latitude ) * ( pi / 180 );
-
-			for ( longitude = 360; longitude > 0; longitude -- ) {
-
-				longPos = ( longitude ) * ( pi / 180 );
-
-				x0 = radius * Math.cos( longPos ) * Math.sin( latPos );
-				z0 = radius * Math.sin( longPos ) * Math.sin( latPos );
-				y0 = radius * Math.cos( latPos );
-
-				v0 = new THREE.Vector3( x0, y0, z0 );
-
-				lineGeom.vertices.push( new THREE.Vertex( v0 ) );
-				dispAttVals.push( neutDisp );
-				opacAttVals.push( 0.0 );
-
-			}
-		}
-
-		lineGroup = new THREE.Line( lineGeom, lineMat );
-		lineGroup.dynamic = true;
-
-		//	Hit box and selected region indicator
-
-		hitLineMat = new THREE.ShaderMaterial({
-
-			uniforms: {
-
-				amount : { type: "f", value: 0 }
-			},
-			vertexShader: document.getElementById( 'vs-pin' ).textContent,
-			fragmentShader: document.getElementById( 'fs-pin' ).textContent,
-			depthTest: false
-		});
-		hitLineMat.linewidth = 2;
-
-		var hitPentMat = new THREE.ShaderMaterial({
-
-			uniforms: {
-
-				amount : { type: "f", value: 0 }
-			},
-			vertexShader: document.getElementById( 'vs-pin' ).textContent,
-			fragmentShader: document.getElementById( 'fs-pin' ).textContent,
-			depthTest: false
-		});
-		hitPentMat.linewidth = 4;
-
-		hitSphere = new THREE.SphereGeometry( radius, 14, 14 );
-		hitTarget = new THREE.Mesh( hitSphere, new THREE.MeshBasicMaterial() );
-		hitTarget.visible = false;
-
-		hitLineGeom = new THREE.Geometry();
-		hitLineGeom.vertices = [ new THREE.Vertex(), new THREE.Vertex() ];
-		hitLine = new THREE.Line( hitLineGeom, hitLineMat );
-
-		var hitPentGeom = new THREE.Geometry();
-
-		function polyShape( geom, edges, radius ) {
-		var	i, pos, first,
-			step = Math.PI * 2 / edges;
-
-			for( i = 0; i <= edges; i ++ ) {
-
-				x = Math.cos( step * i ) * radius;
-				y = Math.sin( step * i ) * radius;
-
-				pos = i < edges ? new THREE.Vector3( x, y, 0 ) : first;
-				if( i == 0 ) first = pos;
-
-				geom.vertices.push( new THREE.Vertex( pos ));
-			}
-		}
-
-		polyShape( hitPentGeom, 10, 10 );
-		hitPent = new THREE.Line( hitPentGeom, hitPentMat );
-
-		scene.add( hitLine );
-		scene.add( hitPent );
-		scene.add( lineGroup );
-		scene.add( hitTarget );
+		
 
 		getData();
 
@@ -669,40 +487,6 @@ var	GlobeApp = (function() {
 		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
 	}
 
-	var counter = 0;
-	function animate() {
-
-		requestAnimationFrame( animate );
-		render();
-		counter = counter < pi ? counter + pi / 128 : 0;
-	}
-
-	function render() {
-	var	scale = Math.sin( counter );
-
-		zoom( curZoomSpeed );
-
-		hitPent.scale.set( scale, scale, 1 );
-
-		rotation.x += ( target.x - rotation.x ) * 0.1;
-		rotation.y += ( target.y - rotation.y ) * 0.1;
-		distance += ( distanceTarget - distance );
-
-		camera.position.x = distance * Math.sin( rotation.x ) * Math.cos(rotation.y);
-		camera.position.y = distance * Math.sin( rotation.y );
-		camera.position.z = distance * Math.cos( rotation.x ) * Math.cos(rotation.y);
-
-		ctarget.y = -camera.position.y / 10; 
-
-		camera.lookAt( ctarget );
-
-		renderer.clear();
-		renderer.render( scene, camera );
-
-	//	stats.update();
-		TWEEN.update();
-	}
-
 	function toggleAbout( event ) {
 	var	isopen = toggleAbout.open;
 
@@ -758,14 +542,13 @@ var	GlobeApp = (function() {
 		'loadData' : loadData,
 		'updateDisplacement' : updateDisplacement,
 		'renderer' : renderer,
-		'geometry' : globe,
 		'data' : data
 //		'peaks' : peaks,
 //		'savePeaks' : savePeaks
 	};
 
 
-}());
+})( WUG || {} );
 
 
 
