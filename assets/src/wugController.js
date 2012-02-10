@@ -1,5 +1,7 @@
-//	WUG Controller
-var	WUG = (function( WUG, THREE ) {
+/**	
+ *	WUG Controller
+ */
+var	WUG = (function( wu, THREE ) {
 
 
 /**	Initialize
@@ -12,18 +14,21 @@ var	guicon = document.getElementById( 'gui-container' ),
 
 	document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
 
-	//	Event Listeners
+//	Event Listeners
 	document.addEventListener( 'keydown', onKeyDown, false );
 	document.addEventListener( 'keyup', onKeyUp, false );
 
 	container.addEventListener( 'mousedown', onMouseDown, false );
 	container.addEventListener( 'mousewheel', onMouseWheel, false );
 
+var	overRenderer = false;
 	container.addEventListener( 'mouseover', function() {
+
 		overRenderer = true;
 	}, false );
 
 	container.addEventListener( 'mouseout', function() {
+
 		overRenderer = false;
 	}, false );
 
@@ -48,57 +53,6 @@ var	months = {
 		"11":"November",
 		"12":"December"
 	};
-
-	//	Update vertex displacement and opacity to new dataset
-	function updateDisplacement( name ) {
-
-		TWEEN.removeAll();
-
-	var	vtl = dispAttVals.length, i,
-
-		existData = cloneObj( dispAttVals ),
-		existOpacity = cloneObj( opacAttVals ),
-
-		newData = data[ name ],
-		newOpacity = nulls[ name ],
-		nameParts = name.split('-'),
-
-		diffD = new Array( vtl ),
-		diffO = new Array( vtl ),
-
-		stage = { d: 0 },
-		dispTween = new TWEEN.Tween( stage ).to( { d:1 }, 300 )
-			.easing( TWEEN.Easing.Cubic.EaseOut )
-			.onUpdate( update ).onComplete( complete );
-
-		namecon.textContent = months[ nameParts[1] ] +" "+ nameParts[0];
-
-		for( i = 0; i < vtl; i ++ ) {
-
-			diffD[ i ] = ( newData[ i ] - existData[ i ] );
-			diffO[ i ] = ( newOpacity[ i ] - existOpacity[ i ] );
-		}
-
-		dispTween.start();
-
-		function update() {
-		var	cstage = stage.d;
-
-			for( i = 0; i < vtl; i ++ ) {
-
-				dispAttVals[ i ] = existData[ i ] + diffD[ i ] * cstage;
-				opacAttVals[ i ] = existOpacity[ i ] + diffO[ i ] * cstage;
-			}
-			dispAtts.needsUpdate = true;
-			opacAtts.needsUpdate = true;
-
-		}
-		function complete() {
-
-		//	console.log( 'complete' );
-		}
-
-	}
 
 var	pi = Math.PI,
 	pihalf = pi / 2,
@@ -366,14 +320,7 @@ var	pi = Math.PI,
 	}
 
 
+	return wu;
+
 })( WUG || {}, THREE );
-
-
-
-
-
-
-
-
-
 

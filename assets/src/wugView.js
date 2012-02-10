@@ -1,25 +1,27 @@
-//	WUG View / Geometry and materials bits
-var WUG = (function( WUG, THREE, TWEEN ) {
-
+/**	
+ *	WUG View / Geometry and materials bits
+ *	Import THREE and TWEEN
+ */
+var WUG = (function( wu, three, tween ) {
 
 /**	Globe geometry & materials
  */
-var	radius = 480,
-	waterLine, waterAtts;
+	var radius = 480;
+	var waterLine, waterAtts;
 
-	//	Establish sphere vertices
+	// Establish sphere vertices
 	(function( line, atts ) {
-	var geom = new THREE.Geometry();
+		var geom = new three.Geometry();
 
-	//	Material custom attributes, array of floats
+		// Material custom attributes, array of floats
 		atts = {
 
 			displacement : { type: 'f', value: [] },
 			opacity : { type: 'f', value: [] }
 		};
 
-	//	Material with custom vertex and fragment shaders
-	var	mat = new THREE.ShaderMaterial({
+		// Material with custom vertex and fragment shaders
+		var mat = new three.ShaderMaterial({
 
 			attributes : atts,
 			uniforms: {
@@ -34,13 +36,11 @@ var	radius = 480,
 
 		mat.linewidth = 2;
 
-	//	Set initial vertices
-	var	latitude, longitude,
-		latPos, longPos, v0,
-
-		dispAttVals = atts.displacement.value,
-		opacAttVals = atts.opacity.value,
-		neutralDisplacement = -radius / 2.5;
+		// Set spherical array of vertices
+		var latitude, longitude, latPos, longPos, v0;
+		var dispAttVals = atts.displacement.value;
+		var opacAttVals = atts.opacity.value;
+		var neutralDisplacement = -radius / 2.5;
 
 		for( latitude = 180; latitude > 0; latitude -- ) {
 
@@ -50,20 +50,20 @@ var	radius = 480,
 
 				longPos = ( longitude ) * ( pi / 180 );
 
-				v0 = new THREE.Vector3(
+				v0 = new three.Vector3(
 					radius * Math.cos( longPos ) * Math.sin( latPos ), // x
 					radius * Math.sin( longPos ) * Math.sin( latPos ), // y
 					radius * Math.cos( latPos ) // z
 				);
 
-				line.vertices.push( new THREE.Vertex( v0 ) );
-				dispAttVals.push( neutDisp );
+				line.vertices.push( new three.Vertex( v0 ) );
+				dispAttVals.push( neutralDisplacement );
 				opacAttVals.push( 0.0 );
 
 			}
 		}
 
-		line = new THREE.Line( waterLineGeom, waterLineMat );
+		line = new three.Line( waterLineGeom, waterLineMat );
 		line.dynamic = true;
 
 	})( waterLine, waterAtts );
@@ -71,30 +71,29 @@ var	radius = 480,
 
 /**	Hit box and region selection indicator
  */
-var	hitLine, hitPent;
+	var hitLine, hitPent;
 
 	//	Macro to create regular-convex polygon
 	function polyShape( geom, edges, radius ) {
-	var	i, x, y,
-		pos, first,
-		step = Math.PI * 2 / edges;
+		var x, y, pos, first;
+		var step = Math.PI * 2 / edges;
 
-		for( i = 0; i <= edges; i ++ ) {
+		for( var i = 0; i <= edges; i ++ ) {
 
 			x = Math.cos( step * i ) * radius;
 			y = Math.sin( step * i ) * radius;
 
-			pos = i < edges ? new THREE.Vector3( x, y, 0 ) : first;
+			pos = i < edges ? new three.Vector3( x, y, 0 ) : first;
 			if( i === 0 ) first = pos;
 
-			geom.vertices.push( new THREE.Vertex( pos ));
+			geom.vertices.push( new three.Vertex( pos ) );
 		}
 	}
 
 	//	Hit indicator - normal
 	(function( line ) {
-	var	geom = new THREE.Geometry(),
-		mat = new THREE.ShaderMaterial({
+		var geom = new three.Geometry();
+		var mat = new three.ShaderMaterial({
 
 			uniforms: {
 				amount : { type: "f", value: 0 }
@@ -107,16 +106,16 @@ var	hitLine, hitPent;
 		});
 
 		mat.linewidth = 2;
-		geom.vertices = [ new THREE.Vertex(), new THREE.Vertex() ];
+		geom.vertices = [ new three.Vertex(), new three.Vertex() ];
 
-		line = new THREE.Line( geom, mat );
+		line = new three.Line( geom, mat );
 
 	})( hitLine );
 
 	//	Hit indicator - planar
 	(function( line ) {
-	var geom = new THREE.Geometry(),
-		mat = new THREE.ShaderMaterial({
+		var geom = new three.Geometry();
+		var mat = new three.ShaderMaterial({
 
 			uniforms: {
 				amount : { type: "f", value: 0 }
@@ -129,15 +128,15 @@ var	hitLine, hitPent;
 		});
 
 		polyShape( geom, 10, 10 );
-		line = new THREE.Line( geom, mat );
+		line = new three.Line( geom, mat );
 
 	})( hitPent );
 
 	//	Hit target - spherical mesh
 	(function( mesh ) {
-	var	sphere = new THREE.SphereGeometry( radius, 14, 14 );
+		var sphere = new three.SphereGeometry( radius, 14, 14 );
 
-		mesh = new THREE.Mesh( sphere, new THREE.MeshBasicMaterial() );
+		mesh = new three.Mesh( sphere, new three.MeshBasicMaterial() );
 		mesh.visible = false;
 
 	})( hitTarget );
@@ -145,32 +144,26 @@ var	hitLine, hitPent;
 
 /**	3D scene
  */
-var	container,
-	camera, ctarget,
-	scene,
-	renderer, overRenderer,
-	projector,
-	ambientLight;
-
-	container = document.createElement( 'div' );
+	var container = document.createElement( 'div' );
 	document.body.appendChild( container );
 
-	camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
+	var camera = new three.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
 	camera.position.z = distance;
-	ctarget = new THREE.Vector3( 0, 0, 0 );
 
-	projector = new THREE.Projector();
+	var ctarget = new three.Vector3( 0, 0, 0 );
 
-	renderer = new THREE.WebGLRenderer();
+	var projector = new three.Projector();
+
+	var renderer = new three.WebGLRenderer();
 	renderer.autoClear = false;
 	renderer.setClearColorHex( 0x000000, 0.0 );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	container.appendChild( renderer.domElement );
 
-	ambientLight = new THREE.AmbientLight( 0x606060 );
+	var ambientLight = new three.AmbientLight( 0x606060 );
 
 	// Create and populate
-	scene = new THREE.Scene();
+	var scene = new three.Scene();
 
 	scene.add( camera );
 	scene.add( ambientLight );
@@ -180,6 +173,49 @@ var	container,
 	scene.add( hitPent );
 	scene.add( hitTarget );
 
+
+	/** Update vertex displacement and opacity to new dataset
+	 */
+	function updateDisplacement( name ) {
+
+		var edata = cloneObj( dispAttVals ), eopac = cloneObj( opacAttVals );
+		var ndata = wu.data[ name ], nopac = wu.opacity[ name ];
+
+		var diffD = [], diffO = [], stage = { d: 0 };
+		var nameParts = name.split('-');
+
+		namecon.textContent = months[ nameParts[1] ] +" "+ nameParts[0];
+
+		// Calculate difference between future and existing values
+		for( var i = 0, il = dispAttVals.length; i < il; i ++ ) {
+
+			diffD[ i ] = ndata[ i ] - edata[ i ];
+			diffO[ i ] = nopac[ i ] - eopac[ i ];
+		}
+
+		// Animate to new values
+		var dispTween = new tween.Tween( stage ).to( { d:1 }, 300 ).easing( tween.Easing.Cubic.EaseOut )
+		.onUpdate( function() {
+			var cstage = stage.d;
+
+			for( i = 0; i < vtl; i ++ ) {
+
+				dispAttVals[ i ] = existData[ i ] + diffD[ i ] * cstage;
+				opacAttVals[ i ] = existOpacity[ i ] + diffO[ i ] * cstage;
+			}
+
+			waterAtts.displacement.needsUpdate = true;
+			waterAtts.opacity.needsUpdate = true;
+
+		}).onComplete( function() {
+
+			//console.log( 'complete' );
+		});
+
+		tween.removeAll();
+		dispTween.start();
+
+	}
 
 /**	Anmimation / rendering
  */
@@ -229,19 +265,18 @@ var	distance = 10000,
 		renderer.clear();
 		renderer.render( scene, camera );
 
-		//stats.update();
-		TWEEN.update();
+		tween.update();
 	}
 
 	//	Publicly accessible
-	WUG.animate = animate;
-	WUG.globe = {
+	wu.animate = animate;
+	wu.globe = {
 
 		"displacement": waterAtts.displacement,
 		"opacity": waterAtts.opacity
 	};
 
-	return WUG;
+	return wu;
 
 })( WUG || {}, THREE, TWEEN );
 
