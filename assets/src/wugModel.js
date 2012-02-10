@@ -3,82 +3,54 @@
  */
 var WUG = (function( wu ) {
 
-	var	data = {}, opacity = {}, peaks = {};
+	var data = {}, opacity = {}, peaks = {};
 	var loading = 0, loaded = 0;
 
 	/** Load data by year, data available for April 2002 - May 2011
 	 */
-	function getData( year, params ) {
+	var dataRange = [ { "year": 2002, "month": 4 }, { "year": 2011, "month": 5 } ];
+
+	function loadData( year, onStart, onSuccess ) {
 		var srcBase = "data/GRACE.";
-		var monthName, fullName, srcPath;
+		var monthName, fullName, srcPath, dateNames = [];
+		var y0 = dataRange[0].year, m0 = dataRange[0].month;
+		var y1 = dataRange[1].year, m1 = dataRange[1].month;
 
 		for( var month = 12; month > 0; month -- ) {
 
-			if( year == 2011 && month > 5 ) continue;
-			if( year == 2002 && month < 4 ) break;
+			// Limit to available range
+			if( year == y1 && month > m1 ) continue;
+			if( year == y0 && month < m0 ) break;
 
 			monthName = month.toString().length < 2 ? "0"+ month : month;
 			fullName = year +"-"+ monthName;
 			srcPath = srcBase + year +"."+ month +".json";
-/**
-			TODO: move to controller
-			seg = document.createElement( 'div' );
-			seg.setAttribute( 'class', 'loading' );
-			seg.setAttribute( 'data-date', year +"-"+ month );
 
-			guicon.appendChild( seg );
-			guis.push( seg );
-*/
-			loading ++;
+			dateNames.push( fullName );
 
-			makeRequest( srcPath, fullName, params.onsuccess );
-			if( params.onstart ) params.onstart( fullName );
+			state.loading ++;
+			makeRequest( srcPath, fullName, onSuccess );
 		}
-/**
-		TODO: move to controller
-		equalizeGuis();
-*/
+
+		onStart( dateNames );
 	}
 
 	/** Request data via xhr
 	 */
 	function makeRequest( src, name, callback ) {
-	var	xhr = new XMLHttpRequest(),
-		json;
+		var json, xhr = new XMLHttpRequest();
 
 		xhr.open( 'GET', src, true );
 		xhr.onreadystatechange = function( event ) {
 
 			if ( xhr.readyState === 4 ) {
-
 				if ( xhr.status === 200 ) {
 
 					loaded ++;
-
 					json = JSON.parse( xhr.responseText );
-
 					parseData( name, json.data );
 
-					if( callback ) {
-
-						callback({ "name": name, "loaded": loaded, "loading": loading });
-					}
-/**
-					TODO: move this into controller
-
-					if( elem ) {
-
-						elem.setAttribute( 'class', 'loaded' );
-						elem.addEventListener( 'mouseover', guiGo );
-					}
-
-					if( loaded == loading ) document.body.className = "loaded";
-					if( loaded == 1 ) {
-
-						animate();
-						updateDisplacement( name );
-					}
-*/
+					if( callback ) callback( name );
 				}
 			}
 		};
@@ -100,6 +72,43 @@ var WUG = (function( wu ) {
 
 		data[ name ] = ndata;
 		opacity[ name ] = opac;
+	}
+
+	/** Provide animation between data-sets
+	 */
+	function dataTweenTo( from, to, onupdate ) {
+
+		var edata = data[ from ], eopac = opacity[ from ];
+		var ndata = data[ to ], nopac = opacity[ to ];
+		var diffD = [], diffO = [], stage = { d: 0 };
+
+		// Calculate difference between future and existing values
+		for( var i = 0, il = dispAttVals.length; i < il; i ++ ) {
+
+			diffD[ i ] = ndata[ i ] - edata[ i ];
+			diffO[ i ] = nopac[ i ] - eopac[ i ];
+		}
+
+		// Stop previous animation, skip to new values
+		tween.removeAll();
+		var dispTween = new tween.Tween( stage ).to( { d:1 }, 300 ).easing( tween.Easing.Cubic.EaseOut )
+		.onUpdate( function() {
+
+			var cstage = stage.d;
+			var displacement = [], opacity = [];
+
+			for( i = 0; i < vtl; i ++ ) {
+
+				displacement.push( edata[ i ] + diffD[ i ] * cstage );
+				opacity.push( eopac[ i ] + diffO[ i ] * cstage );
+			}
+			// Apply updated values to geometry
+			onupdate( displacement, opacity );
+
+		}).onComplete( function() {
+
+			//console.log( 'complete' );
+		});
 	}
 
 
@@ -131,10 +140,50 @@ var WUG = (function( wu ) {
 		};
 	}
 
+	function savePeaks() {
+	var	month, sep = ",",
+		text = "month,max,min,average\n";
 
-//	Exports
-	wu.data = data;
-	wu.opacity = opacity;
+		for( var i in peaks ) {
+
+			if( peaks.hasOwnProperty( i )) {
+				month = peaks[ i ];
+				text += i + sep + month.max + sep + month.min + sep + month.avg + "\n";
+			}
+		}
+
+		exportText( text );
+	}
+
+	/** Utility to recursively clone objects and arrays
+	 */
+	function cloneObj( object ) {
+	var newObj = ( object instanceof Array ) ? [] : {};
+
+		for ( var i in object ) {
+
+			// Ignore inherited properties
+			if ( !object.hasOwnProperty( i ) ) continue;
+
+			if ( object[i] && typeof object[i] == "object" ) {
+				newObj[i] = cloneObj( object[i] );
+
+			} else newObj[i] = object[i];
+		}
+
+		return newObj;
+	}
+
+
+	/** Exports
+	 */
+	wu.model = {
+
+		"data": data,
+		"peaks": peaks,
+		"loadData": loadData,
+		"tweenTo": dataTweenTo
+	};
 
 	return wu;
 

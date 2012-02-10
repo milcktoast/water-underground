@@ -1,27 +1,29 @@
 /**	
  *	WUG Controller
  */
-var	WUG = (function( wu, THREE ) {
+var	WUG = (function( wu, three ) {
 
 
 /**	Initialize
  */
 	if( !THREE.validateWebGL() ) return false;
 
-var	guicon = document.getElementById( 'gui-container' ),
-	namecon = document.getElementById( 'date-display' ),
-	aboutcon = document.getElementById( 'about' );
+	var state = {};
+
+	var guicon = document.getElementById( 'gui-container' );
+	var namecon = document.getElementById( 'date-display' );
+	var aboutcon = document.getElementById( 'about' );
 
 	document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
 
-//	Event Listeners
+	// Event Listeners
 	document.addEventListener( 'keydown', onKeyDown, false );
 	document.addEventListener( 'keyup', onKeyUp, false );
 
 	container.addEventListener( 'mousedown', onMouseDown, false );
 	container.addEventListener( 'mousewheel', onMouseWheel, false );
 
-var	overRenderer = false;
+	var overRenderer = false;
 	container.addEventListener( 'mouseover', function() {
 
 		overRenderer = true;
@@ -34,51 +36,8 @@ var	overRenderer = false;
 
 	window.addEventListener( 'resize', onWindowResize, false );
 
-	getData();
-
-
-var	guis = [];
-
-var	months = {
-		"01":"January",
-		"02":"February",
-		"03":"March",
-		"04":"April",
-		"05":"May",
-		"06":"June",
-		"07":"July",
-		"08":"August",
-		"09":"September",
-		"10":"October",
-		"11":"November",
-		"12":"December"
-	};
-
-var	pi = Math.PI,
-	pihalf = pi / 2,
-
-	keys = { shift: false, ctrl: false },
-	mouse = { x: 0, y: 0 },
-	mouseOnDown = { x: 0, y: 0 },
-
-	rotation = { x: pi * 3/2, y: pi / 6.0 },
-
-	target = { x: 0, y: 0 },
-	targetOnDown = { x: 0, y: 0 },
-
-	curZoomSpeed = 0,
-	zoomSpeed = 50;
-
-	function equalizeGuis() {
-	var	e, el = guis.length,
-		ewidth = Math.floor( window.innerWidth / el );
-
-		for( e = 0; e < el; e ++ ) {
-
-			guis[ e ].style.width = ewidth + "px";
-		}
-	}
-
+	/** General class attribute utilities
+	 */
 	function hasClass( ele, cls ) {
 
 		return ele.className.match( new RegExp('(\\s|^)'+ cls +'(\\s|$)') );
@@ -97,70 +56,103 @@ var	pi = Math.PI,
 		}
 	}
 
-	function guiGo( event ) {
-	var node = this,
-		curr = guiGo.current || node,
-		wait;
+	/** User Interaction / selection of datasets
+	 */
+	var guis = [];
 
-		node.addEventListener( 'mouseout', guiOut, false );
-		wait = setTimeout( update, 200 );
+	function updateGuis( event ) {
+		var node = this, currNode = state.currentNode || node, wait;
+		var newSet = node.getAttribute( 'data-date' );
 
-		function guiOut( event ) {
+		if( !newSet ) return false;
+
+		node.addEventListener( 'mouseout', onGuiMouseOut, false );
+		wait = setTimeout( updateDataState, 200 );
+
+		function onGuiMouseOut( event ) {
 
 			clearTimeout( wait );
 			cleanEvents();
 		}
 
-		function update() {
+		function updateDataState() {
+			var nameParts = name.split('-');
 
-			removeClass( curr, 'active' );
+			removeClass( currNode, 'active' );
 			addClass( node, 'active' );
 			cleanEvents();
 
-			guiGo.current = node;
-			updateDisplacement( node.getAttribute( 'data-date' ) );
+			namecon.textContent = months[ nameParts[1] ] +" "+ nameParts[0];
+
+			wu.model.tweenTo( state.currentSet, newSet, wu.updateDisplacement );
+			state.currentNode = node;
+			state.currentSet = newSet;
 		}
 
 		function cleanEvents() {
 
-			node.removeEventListener( 'mouseout', guiOut, false );
+			node.removeEventListener( 'mouseout', onGuiMouseOut, false );
 		}
 	}
 
+	function equalizeGuis() {
+		var ewidth = Math.floor( window.innerWidth / el );
+
+		for( var e = 0, el = guis.length; e < el; e ++ ) {
+
+			guis[ e ].style.width = ewidth + "px";
+		}
+	}
+
+	/** Create UI elements representing each dataset
+	 */
+	function createGuis( ids ) {
+		var seg;
+
+		for( var i = 0, il = ids.length; i < il; i ++ ) {
+
+			seg = document.createElement( 'div' );
+			seg.setAttribute( 'class', 'loading' );
+			seg.setAttribute( 'data-date', ids[ i ] );
+
+			guicon.appendChild( seg );
+			guis.push( seg );
+		}
+	}
+
+	/** Data for element is loaded, enable interaction
+	 */
+	function enableGui( ) {
+		
+		
+	}
+
+	/** Modification of state via hotkeys
+	 */
 	function onKeyDown( event ) {
-	var	node, date,
-		curr = guiGo.current || guis[0];
+		var node, date, curr = state.currentNode || guis[0];
 
 		switch( event.keyCode ) {
 
 			case 16 : // shift
 
-				keys.shift = true;
+				keys.shft = true;
+			break;
+			case 17 : // control
+
+				keys.ctrl = true;
 			break;
 			case 39 : // <
 
 				node = curr.previousSibling;
-				update();
 			break;
 			case 37 : // >
 
 				node = curr.nextSibling;
-				update();
 			break;
 		}
 
-		function update() {
-
-			if( !node ) return false;
-			date = node.getAttribute( 'data-date' );
-			if( !date ) return false;
-
-			updateDisplacement( date );
-
-			removeClass( curr, 'active' );
-			addClass( node, 'active' );
-			guiGo.current = node;
-		}
+		if( node !== undefined ) updateGuis.call( node, event );
 	}
 
 	function onKeyUp( event ) {
@@ -169,13 +161,61 @@ var	pi = Math.PI,
 
 			case 16 : // shift
 
-				keys.shift = false;
+				keys.shft = false;
+			break;
+			case 17 : // control
+
+				keys.ctrl = false;
 			break;
 		}
 	}
 
+	/** User interaction with 3D scene
+	 */
+	var projector = new three.Projector();
+
+	function intersectScene( event ) {
+		var vector, ray, intersects;
+		var point, coords, dir, verts, v0, v1;
+
+		vector = new three.Vector3( ( mouseOnDown.x / window.innerWidth ) * 2 - 1, - ( mouseOnDown.y / window.innerHeight ) * 2 + 1, 0.5 );
+		projector.unprojectVector( vector, wu.camera );
+
+		ray = new three.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
+		intersects = ray.intersectScene( scene );
+
+		if( intersects.length > 0 ) {
+
+			point = intersects[0].point;
+			coords = point.sphereCoord( radius );
+			console.log( coords );
+
+			verts = hitLineGeom.vertices;
+			dir = point.clone().normalize();
+			v0 = dir.clone().multiplyScalar( 10000 );
+			v1 = dir.clone().multiplyScalar( 350 );
+
+			hitPent.position.copy( point );
+			hitPent.lookAt( new three.Vector3( 0, 0, 0 ));
+
+			verts[0].position = v0;
+			verts[1].position = v1;
+			hitLineGeom.__dirtyVertices = true;
+		}
+	}
+
+	/** Orbit and zoom controls
+	 */
+	var pi = Math.PI, pihalf = pi / 2;
+
+	var keys = { shft: false, ctrl: false };
+	var mouse = { x: 0, y: 0 }, mouseOnDown = { x: 0, y: 0 };
+
+	var rotation = { x: pi * 3/2, y: pi / 6.0 };
+	var target = { x: 0, y: 0 }, targetOnDown = { x: 0, y: 0 };
+	var curZoomSpeed = 0, zoomSpeed = 50;
+
 	function onMouseDown( event ) {
-	var	vector, ray, intersects;
 
 		event.preventDefault();
 
@@ -183,40 +223,15 @@ var	pi = Math.PI,
 		container.addEventListener( 'mouseup', onMouseUp, false );
 		container.addEventListener( 'mouseout', onMouseOut, false );
 
-		mouseOnDown.x = - event.clientX;
+		mouseOnDown.x = event.clientX;
 		mouseOnDown.y = event.clientY;
 
 		targetOnDown.x = target.x;
 		targetOnDown.y = target.y;
 
-		if( keys.shift ) {
+		if( keys.shft ) {
 
-			vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
-			projector.unprojectVector( vector, camera );
-
-			ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
-			intersects = ray.intersectScene( scene );
-
-			if( intersects.length > 0 ) {
-			var	point, coords,
-				dir, verts, v0, v1;
-
-				point = intersects[0].point;
-				coords = point.sphereCoord( radius );
-				console.log( coords );
-
-				verts = hitLineGeom.vertices;
-				dir = point.clone().normalize();
-				v0 = dir.clone().multiplyScalar( 10000 );
-				v1 = dir.clone().multiplyScalar( 350 );
-
-				hitPent.position.copy( point );
-				hitPent.lookAt( new THREE.Vector3( 0, 0, 0 ));
-
-				verts[0].position = v0;
-				verts[1].position = v1;
-				hitLineGeom.__dirtyVertices = true;
-			}
+			intersectScene( event );
 		}
 
 		container.style.cursor = 'move';
@@ -229,7 +244,7 @@ var	pi = Math.PI,
 
 		var zoomDamp = distance / 1000;
 
-		target.x = targetOnDown.x + ( mouse.x - mouseOnDown.x ) * 0.005 * zoomDamp;
+		target.x = targetOnDown.x + ( mouse.x + mouseOnDown.x ) * 0.005 * zoomDamp;
 		target.y = targetOnDown.y + ( mouse.y - mouseOnDown.y ) * 0.005 * zoomDamp;
 
 		target.y = target.y > pihalf ? pihalf : target.y;
@@ -254,7 +269,7 @@ var	pi = Math.PI,
 	function onMouseWheel( event ) {
 
 		event.preventDefault();
-		if ( overRenderer ) {
+		if( overRenderer ) {
 			zoom(event.wheelDeltaY * 0.3);
 		}
 		return false;
@@ -270,55 +285,80 @@ var	pi = Math.PI,
 	}
 
 	function toggleAbout( event ) {
-	var	isopen = toggleAbout.open;
+	var	isopen = state.aboutOpen || false;
 
 		if( !isopen ) addClass( aboutcon, "show" );
 		else aboutcon.className = "";
 
-		toggleAbout.open = !isopen;
+		state.aboutOpen = !isopen;
 
 		if( !isopen ) container.addEventListener( 'mousedown', toggleAbout, false );
 		else container.removeEventListener( 'mousedown', toggleAbout, false );
-
-	}
-	toggleAbout.open = false;
-
-	//	clone objects
-	function cloneObj( object ) {
-	var newObj = ( object instanceof Array ) ? [] : {};
-
-		for ( var i in object ) {
-
-			if ( object[i] && typeof object[i] == "object" ) {
-
-				newObj[i] = object[i].clone();
-
-			} else newObj[i] = object[i];
-		}
-
-		return newObj;
 	}
 
-	function savePeaks() {
-	var	month, sep = ",",
-		text = "month,max,min,average\n";
 
-		for( var i in peaks ) {
+/** Anmimation / rendering
+ */
+	var distance = 10000, distanceTarget = 1900;
 
-			if( peaks.hasOwnProperty( i )) {
-				month = peaks[ i ];
-				text += i + sep + month.max + sep + month.min + sep + month.avg + "\n";
-			}
-		}
+	function animate() {
 
-		exportText( text );
+		requestAnimationFrame( animate );
+		update();
+		render();
 	}
 
+	function update() {
+	var	counter = update.counter || 0;
+
+		counter = counter < pi ? counter + pi / 128 : 0;
+		update.counter = counter;
+	}
+
+	function zoom( delta ) {
+
+		distanceTarget -= delta;
+		distanceTarget = distanceTarget > 2200 ? 2200 : distanceTarget;
+		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
+	}
+
+	function render() {
+	var	scale = Math.sin( update.counter );
+
+		zoom( curZoomSpeed );
+
+		hitPent.scale.set( scale, scale, 1 );
+
+		rotation.x += ( target.x - rotation.x ) * 0.1;
+		rotation.y += ( target.y - rotation.y ) * 0.1;
+		distance += ( distanceTarget - distance );
+
+		camera.position.x = distance * Math.sin( rotation.x ) * Math.cos(rotation.y);
+		camera.position.y = distance * Math.sin( rotation.y );
+		camera.position.z = distance * Math.cos( rotation.x ) * Math.cos(rotation.y);
+
+		ctarget.y = -camera.position.y / 10; 
+
+		camera.lookAt( ctarget );
+
+		renderer.clear();
+		renderer.render( scene, camera );
+
+		tween.update();
+	}
+
+	/** Prompt download of arbitrary text content
+	 */
 	function exportText( text ) {
 	var	content = "data:application/plain;charset=utf-8," + escape( text );
 	    window.open( content, "data", "width=500,height=10" );
 	}
 
+	wu.state = state;
+
+	/** Initial load
+	 */
+	wu.model.loadData( yearRange[1], createGuis, enableGui );
 
 	return wu;
 
