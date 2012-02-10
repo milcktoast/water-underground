@@ -36,9 +36,6 @@ var	WUG = (function() {
 		target = { x: 0, y: 0 },
 		targetOnDown = { x: 0, y: 0 },
 
-		distance = 10000,
-		distanceTarget = 1900,
-
 		curZoomSpeed = 0,
 		zoomSpeed = 50;
 
@@ -480,13 +477,6 @@ var	WUG = (function() {
 		equalizeGuis();
 	}
 
-	function zoom( delta ) {
-
-		distanceTarget -= delta;
-		distanceTarget = distanceTarget > 2200 ? 2200 : distanceTarget;
-		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
-	}
-
 	function toggleAbout( event ) {
 	var	isopen = toggleAbout.open;
 
@@ -536,16 +526,6 @@ var	WUG = (function() {
 	var	content = "data:application/plain;charset=utf-8," + escape( text );
 	    window.open( content, "data", "width=500,height=10" );
 	}
-
-	//	public functions and vars
-	return {
-		'loadData' : loadData,
-		'updateDisplacement' : updateDisplacement,
-		'renderer' : renderer,
-		'data' : data
-//		'peaks' : peaks,
-//		'savePeaks' : savePeaks
-	};
 
 
 })( WUG || {} );

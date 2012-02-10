@@ -4,14 +4,12 @@ var WUG = (function( WUG, THREE, TWEEN ) {
 
 /**	Globe geometry & materials
  */
-
 var	radius = 480,
 	waterLine, waterAtts;
 
-	// Establish sphere vertices
+	//	Establish sphere vertices
 	(function( line, atts ) {
-	var geom = new THREE.Geometry(),
-		mat;
+	var geom = new THREE.Geometry();
 
 	//	Material custom attributes, array of floats
 		atts = {
@@ -20,12 +18,11 @@ var	radius = 480,
 			opacity : { type: 'f', value: [] }
 		};
 
-	//	Data vertex and fragment shader
-		mat = new THREE.ShaderMaterial({
+	//	Material with custom vertex and fragment shaders
+	var	mat = new THREE.ShaderMaterial({
 
 			attributes : atts,
 			uniforms: {
-
 				amount : { type: "f", value: 0 }
 			},
 
@@ -74,11 +71,12 @@ var	radius = 480,
 
 /**	Hit box and region selection indicator
  */
-	var hitLine, hitPent;
+var	hitLine, hitPent;
 
-	// Macro to create regular-convex polygon
+	//	Macro to create regular-convex polygon
 	function polyShape( geom, edges, radius ) {
-	var	i, pos, first,
+	var	i, x, y,
+		pos, first,
 		step = Math.PI * 2 / edges;
 
 		for( i = 0; i <= edges; i ++ ) {
@@ -93,7 +91,7 @@ var	radius = 480,
 		}
 	}
 
-	// Hit indicator - normal
+	//	Hit indicator - normal
 	(function( line ) {
 	var	geom = new THREE.Geometry(),
 		mat = new THREE.ShaderMaterial({
@@ -115,10 +113,10 @@ var	radius = 480,
 
 	})( hitLine );
 
-	// Hit indicator - planar
+	//	Hit indicator - planar
 	(function( line ) {
 	var geom = new THREE.Geometry(),
-	 	mat = new THREE.ShaderMaterial({
+		mat = new THREE.ShaderMaterial({
 
 			uniforms: {
 				amount : { type: "f", value: 0 }
@@ -130,9 +128,12 @@ var	radius = 480,
 			depthTest: false
 		});
 
+		polyShape( geom, 10, 10 );
+		line = new THREE.Line( geom, mat );
+
 	})( hitPent );
 
-	// Hit target - spherical mesh
+	//	Hit target - spherical mesh
 	(function( mesh ) {
 	var	sphere = new THREE.SphereGeometry( radius, 14, 14 );
 
@@ -182,6 +183,9 @@ var	container,
 
 /**	Anmimation / rendering
  */
+var	distance = 10000,
+	distanceTarget = 1900;
+
 	function animate() {
 
 		requestAnimationFrame( animate );
@@ -194,6 +198,13 @@ var	container,
 
 		counter = counter < pi ? counter + pi / 128 : 0;
 		update.counter = counter;
+	}
+
+	function zoom( delta ) {
+
+		distanceTarget -= delta;
+		distanceTarget = distanceTarget > 2200 ? 2200 : distanceTarget;
+		distanceTarget = distanceTarget < 1200 ? 1200 : distanceTarget;
 	}
 
 	function render() {
@@ -222,7 +233,7 @@ var	container,
 		TWEEN.update();
 	}
 
-	// Publicly accessible
+	//	Publicly accessible
 	WUG.animate = animate;
 	WUG.globe = {
 
