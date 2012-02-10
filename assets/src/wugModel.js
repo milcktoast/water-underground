@@ -163,9 +163,9 @@ var WUG = (function( wu ) {
 		for ( var i in object ) {
 
 			// Ignore inherited properties
-			if ( !object.hasOwnProperty( i ) ) continue;
+			if( !object.hasOwnProperty( i )) continue;
 
-			if ( object[i] && typeof object[i] == "object" ) {
+			if( object[i] && typeof object[i] == "object" ) {
 				newObj[i] = cloneObj( object[i] );
 
 			} else newObj[i] = object[i];

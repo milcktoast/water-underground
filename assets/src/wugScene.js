@@ -7,9 +7,10 @@ var WUG = (function( wu, three, tween ) {
 /**	Globe geometry & materials
  */
 	var radius = 480;
+	var sceneObjects = {};
 
 	// Establish sphere vertices
-	var globe = (function() {
+	var globe = (function( line, atts, update ) {
 		var geom = new three.Geometry();
 
 		// Material custom attributes, array of floats
@@ -77,19 +78,11 @@ var WUG = (function( wu, three, tween ) {
 			atts.opacity.needsUpdate = true;
 		}
 
-		return {
-
-			"line": line,
-			"atts": atts,
-			"update": update
-		};
-
-	})();
+	})( sceneObjects.globe, globeAtts, updateGlobe );
 
 
 /**	Hit box and region selection indicator
  */
-	var hitLine, hitPent;
 
 	//	Macro to create regular-convex polygon
 	function polyShape( geom, edges, radius ) {
@@ -128,7 +121,7 @@ var WUG = (function( wu, three, tween ) {
 
 		line = new three.Line( geom, mat );
 
-	})( hitLine );
+	})( sceneObjects.hitLine );
 
 	//	Hit indicator - planar
 	(function( line ) {
@@ -148,7 +141,7 @@ var WUG = (function( wu, three, tween ) {
 		polyShape( geom, 10, 10 );
 		line = new three.Line( geom, mat );
 
-	})( hitPent );
+	})( sceneObjects.hitPent );
 
 	//	Hit target - spherical mesh
 	(function( mesh ) {
@@ -157,7 +150,7 @@ var WUG = (function( wu, three, tween ) {
 		mesh = new three.Mesh( sphere, new three.MeshBasicMaterial() );
 		mesh.visible = false;
 
-	})( hitTarget );
+	})( sceneObjects.hitTarget );
 
 
 	/** 3D scene
@@ -167,8 +160,6 @@ var WUG = (function( wu, three, tween ) {
 
 	var camera = new three.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
 	camera.position.z = distance;
-
-	var ctarget = new three.Vector3( 0, 0, 0 );
 
 	var renderer = new three.WebGLRenderer();
 	renderer.autoClear = false;
@@ -184,17 +175,22 @@ var WUG = (function( wu, three, tween ) {
 	scene.add( camera );
 	scene.add( ambientLight );
 
-	scene.add( globe.line );
-	scene.add( hitLine );
-	scene.add( hitPent );
-	scene.add( hitTarget );
+	for( var name in sceneObjects ) {
+
+		if( !sceneObjects[ name ].hasOwnProperty( name )) continue;
+		scene.add( sceneObjects[ name ]);
+	}
 
 
 	/** Publicly accessible
 	 */
-	wu.scene = scene;
-	wu.camera = camera;
-	wu.globe = globe;
+	wu.view = {
+
+		"scene": scene,
+		"camera": camera,
+		"renderer": renderer,
+		"objects": sceneObjects
+	};
 
 	return wu;
 

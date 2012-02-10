@@ -4,19 +4,24 @@
 var	WUG = (function( wu, three ) {
 
 
-/**	Initialize
- */
+	/** Initialize
+ 	*/
 	if( !THREE.validateWebGL() ) return false;
 
-	var state = {};
+	var state = {
 
+		"fullyLoaded": false
+	};
+
+
+	/** UI Elements & event Listeners
+	 */
 	var guicon = document.getElementById( 'gui-container' );
 	var namecon = document.getElementById( 'date-display' );
 	var aboutcon = document.getElementById( 'about' );
 
 	document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
 
-	// Event Listeners
 	document.addEventListener( 'keydown', onKeyDown, false );
 	document.addEventListener( 'keyup', onKeyUp, false );
 
@@ -35,6 +40,7 @@ var	WUG = (function( wu, three ) {
 	}, false );
 
 	window.addEventListener( 'resize', onWindowResize, false );
+
 
 	/** General class attribute utilities
 	 */
@@ -55,6 +61,7 @@ var	WUG = (function( wu, three ) {
 			ele.className = ( ele.className.replace( reg,' ' ) ).replace( /^[ ]+|[ ]+$/, '' );
 		}
 	}
+
 
 	/** User Interaction / selection of datasets
 	 */
@@ -106,31 +113,38 @@ var	WUG = (function( wu, three ) {
 
 	/** Create UI elements representing each dataset
 	 */
-	function createGuis( ids ) {
-		var seg;
+	function createGuis( names ) {
+		var elem;
 
-		for( var i = 0, il = ids.length; i < il; i ++ ) {
+		for( var i = 0, il = names.length; i < il; i ++ ) {
 
-			seg = document.createElement( 'div' );
-			seg.setAttribute( 'class', 'loading' );
-			seg.setAttribute( 'data-date', ids[ i ] );
+			elem = document.createElement( 'div' );
+			elem.setAttribute( 'id', "month-"+ names[ i ] );
+			elem.setAttribute( 'data-date', names[ i ] );
+			elem.setAttribute( 'class', 'loading' );
 
-			guicon.appendChild( seg );
-			guis.push( seg );
+			guicon.appendChild( elem );
+			guis.push( elem );
 		}
 	}
 
 	/** Data for element is loaded, enable interaction
 	 */
-	function enableGui( ) {
-		
-		
+	function enableGui( name ) {
+		var elem = document.getElementById( "month-"+ name );
+
+		if( elem ) {
+
+			elem.setAttribute( 'class', 'loaded' );
+			elem.addEventListener( 'mouseover', updateGuis );
+		}
 	}
+
 
 	/** Modification of state via hotkeys
 	 */
 	function onKeyDown( event ) {
-		var node, date, curr = state.currentNode || guis[0];
+		var node, dir, date, curr = state.currentNode || guis[0];
 
 		switch( event.keyCode ) {
 
@@ -145,14 +159,20 @@ var	WUG = (function( wu, three ) {
 			case 39 : // <
 
 				node = curr.previousSibling;
+				dir = "prev";
 			break;
 			case 37 : // >
 
 				node = curr.nextSibling;
+				dir = "next";
 			break;
 		}
 
-		if( node !== undefined ) updateGuis.call( node, event );
+		if( node !== undefined ) {
+
+			updateGuis.call( node, event );
+
+		} else if( dir == "prev" && !state.fullyLoaded )
 	}
 
 	function onKeyUp( event ) {
@@ -169,6 +189,7 @@ var	WUG = (function( wu, three ) {
 			break;
 		}
 	}
+
 
 	/** User interaction with 3D scene
 	 */
@@ -204,7 +225,7 @@ var	WUG = (function( wu, three ) {
 		}
 	}
 
-	/** Orbit and zoom controls
+	/** Orbit & zoom controls
 	 */
 	var pi = Math.PI, pihalf = pi / 2;
 
@@ -297,9 +318,13 @@ var	WUG = (function( wu, three ) {
 	}
 
 
-/** Anmimation / rendering
- */
+	/** Anmimation & rendering
+	*/
 	var distance = 10000, distanceTarget = 1900;
+	var ctarget = new three.Vector3( 0, 0, 0 );
+	var scene = wu.view.scene;
+	var camera = wu.view.camera;
+	var renderer = wu.view.renderer;
 
 	function animate() {
 
@@ -309,10 +334,10 @@ var	WUG = (function( wu, three ) {
 	}
 
 	function update() {
-	var	counter = update.counter || 0;
+	var	counter = state.counter || 0;
 
 		counter = counter < pi ? counter + pi / 128 : 0;
-		update.counter = counter;
+		state.counter = counter;
 	}
 
 	function zoom( delta ) {
@@ -323,11 +348,11 @@ var	WUG = (function( wu, three ) {
 	}
 
 	function render() {
-	var	scale = Math.sin( update.counter );
 
 		zoom( curZoomSpeed );
 
-		hitPent.scale.set( scale, scale, 1 );
+		var pscale = Math.sin( state.counter );
+		hitPent.scale.set( pscale, pscale, 1 );
 
 		rotation.x += ( target.x - rotation.x ) * 0.1;
 		rotation.y += ( target.y - rotation.y ) * 0.1;
@@ -354,6 +379,8 @@ var	WUG = (function( wu, three ) {
 	    window.open( content, "data", "width=500,height=10" );
 	}
 
+	/** Public
+	 */
 	wu.state = state;
 
 	/** Initial load
