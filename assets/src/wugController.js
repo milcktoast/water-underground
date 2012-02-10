@@ -1,199 +1,53 @@
 //	WUG Controller
-var	WUG = (function() {
-	var	guis = [],
-		months = {
-			"01":"January",
-			"02":"February",
-			"03":"March",
-			"04":"April",
-			"05":"May",
-			"06":"June",
-			"07":"July",
-			"08":"August",
-			"09":"September",
-			"10":"October",
-			"11":"November",
-			"12":"December"
-		},
-
-		// DOM
-		container, guicon, namecon, aboutcon,
-		// Hit sphere ( for UI )
-		projector, hitSphere, hitTarget,
-		hitLine, hitLineMat, hitPent,
-		// Vis 
-		lineGroup, matAtts, lineMat, lineGeom, dispAtts, dispAttVals, opacAtts, opacAttVals,
-
-		pi = Math.PI,
-		pihalf = pi / 2,
-
-		keys = { shift: false, ctrl: false },
-		mouse = { x: 0, y: 0 },
-		mouseOnDown = { x: 0, y: 0 },
-
-		rotation = { x: pi * 3/2, y: pi / 6.0 },
-
-		target = { x: 0, y: 0 },
-		targetOnDown = { x: 0, y: 0 },
-
-		curZoomSpeed = 0,
-		zoomSpeed = 50;
+var	WUG = (function( WUG, THREE ) {
 
 
-//	Init
-	(function() {
+/**	Initialize
+ */
+	if( !THREE.validateWebGL() ) return false;
 
-		if( !validateWebGL()) return false;
+var	guicon = document.getElementById( 'gui-container' ),
+	namecon = document.getElementById( 'date-display' ),
+	aboutcon = document.getElementById( 'about' );
 
-		guicon = document.getElementById( 'gui-container' );
-		namecon = document.getElementById( 'date-display' );
+	document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
 
-		aboutcon = document.getElementById( 'about' );
-		document.getElementById( 'about-toggle' ).addEventListener( 'click', toggleAbout, false );
-/*
-		stats = new Stats();
-		stats.domElement.style.position = 'absolute';
-		stats.domElement.style.top = '0px';
-		container.appendChild( stats.domElement );
-*/
+	//	Event Listeners
+	document.addEventListener( 'keydown', onKeyDown, false );
+	document.addEventListener( 'keyup', onKeyUp, false );
 
-		//	Events
-		document.addEventListener( 'keydown', onKeyDown, false );
-		document.addEventListener( 'keyup', onKeyUp, false );
-		container.addEventListener( 'mousedown', onMouseDown, false );
-		container.addEventListener( 'mousewheel', onMouseWheel, false );
-		window.addEventListener( 'resize', onWindowResize, false );
+	container.addEventListener( 'mousedown', onMouseDown, false );
+	container.addEventListener( 'mousewheel', onMouseWheel, false );
 
-		container.addEventListener( 'mouseover', function() {
-			overRenderer = true;
-		}, false );
+	container.addEventListener( 'mouseover', function() {
+		overRenderer = true;
+	}, false );
 
-		container.addEventListener( 'mouseout', function() {
-			overRenderer = false;
-		}, false );
+	container.addEventListener( 'mouseout', function() {
+		overRenderer = false;
+	}, false );
+
+	window.addEventListener( 'resize', onWindowResize, false );
+
+	getData();
 
 
-		
+var	guis = [];
 
-		getData();
-
-	}());
-
-	//	Check for webGL support
-	function validateWebGL() {
-	var	gl, elem, link, canvas, error = false;
-
-		gl = window.WebGLRenderingContext;
-		if ( !gl ) {
-			error = "your browser has no idea what WebGL is :(";
-		}
-
-		canvas = document.createElement('canvas');
-		gl = canvas.getContext("experimental-webgl");
-		if( !gl ) {
-
-			error = "your browser could not initialize WebGL. You probably need to update your drivers or get a new browser.";
-		}
-
-		if( error ) {
-
-			elem = document.createElement('div');
-			elem.setAttribute( 'id', 'gl-error' );
-			elem.innerHTML = "This visualization requires WebGL. However, "+ error +
-				"<br /> For more info, check out: <a href='http://get.webgl.org/'>get.webgl.org</a>"+
-				"<br /> Also, for a screen-recording of the visualization, view: <a href='http://vimeo.com/32062020'>vimeo.com/32062020</a>";
-			document.body.appendChild( elem );
-
-			document.body.setAttribute( 'class', 'error' );
-
-			return false;
-		}
-
-		return true;
-	}
-
-	function getData() {
-	var	s, yr, mo, seg,
-		srcBase = "data/GRACE.";
-
-		getData.count = 0;
-
-		for( yr = 2011; yr >= 2002; yr -- ) {
-
-			for( mo = 12; mo > 0; mo -- ) {
-
-				if( yr == 2011 && mo > 5 ) continue;
-				if( yr == 2002 && mo < 4 ) break;
-
-				mo = mo.toString().length < 2 ? "0"+ mo : mo;
-
-				seg = document.createElement( 'div' );
-				seg.setAttribute( 'class', 'loading' );
-				seg.setAttribute( 'data-date', yr +"-"+ mo );
-
-				guicon.appendChild( seg );
-				guis.push( seg );
-
-				getData.count ++;
-
-				makeRequest( srcBase + yr +"."+ mo +".json", seg );
-
-			}
-		}
-
-		equalizeGuis();
-
-		seg = document.createElement( 'div' );
-		seg.setAttribute( 'class', 'loading dummy' );
-		guicon.appendChild( seg );
-
-		function makeRequest( src, elem ) {
-		var	json, xhr = new XMLHttpRequest();
-
-			xhr.open( 'GET', src, true );
-			xhr.onreadystatechange = function( event ) {
-
-				if ( xhr.readyState === 4 ) {
-
-					if ( xhr.status === 200 ) {
-
-						json = JSON.parse( xhr.responseText );
-
-						if( elem ) {
-
-							elem.setAttribute( 'class', 'loaded' );
-							elem.addEventListener( 'mouseover', guiGo );
-						}
-
-						loadData( json.year, json.month, json.data );
-					}
-				}
-			};
-
-			xhr.setRequestHeader( "Content-Encoding", "gzip" );
-			xhr.setRequestHeader( "Content-Type", "application/json" );
-			xhr.send( null );
-
-		}
-
-	}
-
-	//	Load data async
-	function loadData( year, month, ndata ) {
-	var	name = year + '-' + month;
-
-		loadData.count ++;
-		parseData( name, ndata );
-	//	console.log( loadData.count, getData.count );
-
-		if( loadData.count == 1 ) {
-
-			animate();
-			updateDisplacement( name );
-		}
-		if( loadData.count == getData.count ) document.body.className = "loaded";
-	}
-	loadData.count = 0;
+var	months = {
+		"01":"January",
+		"02":"February",
+		"03":"March",
+		"04":"April",
+		"05":"May",
+		"06":"June",
+		"07":"July",
+		"08":"August",
+		"09":"September",
+		"10":"October",
+		"11":"November",
+		"12":"December"
+	};
 
 	//	Update vertex displacement and opacity to new dataset
 	function updateDisplacement( name ) {
@@ -246,37 +100,21 @@ var	WUG = (function() {
 
 	}
 
-	function parseData( name, ndata ) {
-	var	i, il = ndata.length, curr, isNull,
-//		tvals = 0, accum = 0,
-//		max = 0, min = 100,
-		opac = new Array( il );
+var	pi = Math.PI,
+	pihalf = pi / 2,
 
-		for( i = 0; i < il; i ++ ) {
+	keys = { shift: false, ctrl: false },
+	mouse = { x: 0, y: 0 },
+	mouseOnDown = { x: 0, y: 0 },
 
-			curr = ndata[ i ];
-			isNull = curr === "";
+	rotation = { x: pi * 3/2, y: pi / 6.0 },
 
-			opac[ i ] = isNull ? 0.0 : 1.0;
-/*			if( isNull ) continue;
+	target = { x: 0, y: 0 },
+	targetOnDown = { x: 0, y: 0 },
 
-			max = curr > max ? curr : max;
-			min = curr < min ? curr : min;
-			accum += curr;
+	curZoomSpeed = 0,
+	zoomSpeed = 50;
 
-			tvals ++;*/
-		}
-
-		data[ name ] = ndata;
-		nulls[ name ] = opac;
-	/*	peaks[ name ] = {
-			'max': max,
-			'min': min,
-			'avg': Math.round( (accum / tvals) * 100 ) / 100
-		};*/
-	}
-
-	//	UI
 	function equalizeGuis() {
 	var	e, el = guis.length,
 		ewidth = Math.floor( window.innerWidth / el );
@@ -528,7 +366,7 @@ var	WUG = (function() {
 	}
 
 
-})( WUG || {} );
+})( WUG || {}, THREE );
 
 
 
