@@ -9,8 +9,11 @@ var WUG = (function( wu, three, tween ) {
 	var radius = 480;
 	var sceneObjects = {};
 
-	// Establish sphere vertices
-	var globe = (function( line, atts, update ) {
+	/** Establish sphere vertices
+	 */
+	var globeAtts, updateGlobe;
+
+	(function( line, atts, update ) {
 		var geom = new three.Geometry();
 
 		// Material custom attributes, array of floats
@@ -41,6 +44,7 @@ var WUG = (function( wu, three, tween ) {
 		var dispAttVals = atts.displacement.value;
 		var opacAttVals = atts.opacity.value;
 		var neutralDisplacement = -radius / 2.5;
+		var pi = Math.PI;
 
 		for( latitude = 180; latitude > 0; latitude -- ) {
 
@@ -56,14 +60,14 @@ var WUG = (function( wu, three, tween ) {
 					radius * Math.cos( latPos ) // z
 				);
 
-				line.vertices.push( new three.Vertex( v0 ) );
+				geom.vertices.push( new three.Vertex( v0 ) );
 				dispAttVals.push( neutralDisplacement );
 				opacAttVals.push( 0.0 );
 
 			}
 		}
 
-		line = new three.Line( waterLineGeom, waterLineMat );
+		line = new three.Line( geom, mat );
 		line.dynamic = true;
 
 		/** Update displacement and opacity
@@ -155,21 +159,9 @@ var WUG = (function( wu, three, tween ) {
 
 	/** 3D scene
 	 */
-	var container = document.createElement( 'div' );
-	document.body.appendChild( container );
-
 	var camera = new three.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
-	camera.position.z = distance;
-
-	var renderer = new three.WebGLRenderer();
-	renderer.autoClear = false;
-	renderer.setClearColorHex( 0x000000, 0.0 );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	container.appendChild( renderer.domElement );
-
 	var ambientLight = new three.AmbientLight( 0x606060 );
 
-	// Create and populate
 	var scene = new three.Scene();
 
 	scene.add( camera );
@@ -188,8 +180,7 @@ var WUG = (function( wu, three, tween ) {
 
 		"scene": scene,
 		"camera": camera,
-		"renderer": renderer,
-		"objects": sceneObjects
+		"objects": sceneObjects,
 	};
 
 	return wu;

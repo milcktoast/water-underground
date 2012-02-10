@@ -35,11 +35,12 @@
 	};
 
 	THREE.Vector3.prototype.sphereCoord = function( sphereRadius ) {
-	var lat, lon;
+		var lat, lon;
 
 		function toDeg( rad ) {
 			return rad * ( 180 / Math.PI );
 		}
+
 		function toHalves( num ) {
 			return Math.round( num * 2 ) / 2;
 		}

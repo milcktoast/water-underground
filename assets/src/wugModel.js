@@ -24,11 +24,11 @@ var WUG = (function( wu ) {
 
 			monthName = month.toString().length < 2 ? "0"+ month : month;
 			fullName = year +"-"+ monthName;
-			srcPath = srcBase + year +"."+ month +".json";
+			srcPath = srcBase + year +"."+ monthName +".json";
 
 			dateNames.push( fullName );
 
-			state.loading ++;
+			loading ++;
 			makeRequest( srcPath, fullName, onSuccess );
 		}
 
@@ -181,6 +181,7 @@ var WUG = (function( wu ) {
 
 		"data": data,
 		"peaks": peaks,
+		"range": dataRange,
 		"loadData": loadData,
 		"tweenTo": dataTweenTo
 	};

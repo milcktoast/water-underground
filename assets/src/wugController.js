@@ -5,17 +5,22 @@ var	WUG = (function( wu, three ) {
 
 
 	/** Initialize
- 	*/
+	*/
 	if( !THREE.validateWebGL() ) return false;
 
 	var state = {
 
+		"distance" : 10000, 
+		"distanceTarget" : 1900,
 		"fullyLoaded": false
 	};
 
 
 	/** UI Elements & event Listeners
 	 */
+	var container = document.createElement( 'div' );
+	document.body.appendChild( container );
+
 	var guicon = document.getElementById( 'gui-container' );
 	var namecon = document.getElementById( 'date-display' );
 	var aboutcon = document.getElementById( 'about' );
@@ -103,9 +108,10 @@ var	WUG = (function( wu, three ) {
 	}
 
 	function equalizeGuis() {
+		var el = guis.length;
 		var ewidth = Math.floor( window.innerWidth / el );
 
-		for( var e = 0, el = guis.length; e < el; e ++ ) {
+		for( var e = 0; e < el; e ++ ) {
 
 			guis[ e ].style.width = ewidth + "px";
 		}
@@ -126,6 +132,8 @@ var	WUG = (function( wu, three ) {
 			guicon.appendChild( elem );
 			guis.push( elem );
 		}
+
+		equalizeGuis();
 	}
 
 	/** Data for element is loaded, enable interaction
@@ -140,6 +148,20 @@ var	WUG = (function( wu, three ) {
 		}
 	}
 
+	/** Load next data set
+	 */
+	function loadNextSet() {
+		var currYear = state.currentSet || wu.model.range[1].year;
+		var nextYear = currYear - 1;
+
+		if( !nextYear >= wu.model.range[0].year ) {
+
+			state.fullyLoaded = true;
+			return false;
+		}
+
+		wu.model.loadData( nextYear, createGuis, enableGui );
+	}
 
 	/** Modification of state via hotkeys
 	 */
@@ -172,7 +194,10 @@ var	WUG = (function( wu, three ) {
 
 			updateGuis.call( node, event );
 
-		} else if( dir == "prev" && !state.fullyLoaded )
+		} else if( dir == "prev" && !state.fullyLoaded ) {
+
+			
+		}
 	}
 
 	function onKeyUp( event ) {
@@ -189,7 +214,6 @@ var	WUG = (function( wu, three ) {
 			break;
 		}
 	}
-
 
 	/** User interaction with 3D scene
 	 */
@@ -320,11 +344,19 @@ var	WUG = (function( wu, three ) {
 
 	/** Anmimation & rendering
 	*/
-	var distance = 10000, distanceTarget = 1900;
-	var ctarget = new three.Vector3( 0, 0, 0 );
 	var scene = wu.view.scene;
+	var distance = state.distance, distanceTarget = state.distanceTarget;
+
 	var camera = wu.view.camera;
-	var renderer = wu.view.renderer;
+	var ctarget = new three.Vector3( 0, 0, 0 );
+	camera.position.z = distance;
+
+	var renderer = new three.WebGLRenderer();
+	renderer.autoClear = false;
+	renderer.setClearColorHex( 0x000000, 0.0 );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	container.appendChild( renderer.domElement );
+
 
 	function animate() {
 
@@ -385,7 +417,7 @@ var	WUG = (function( wu, three ) {
 
 	/** Initial load
 	 */
-	wu.model.loadData( yearRange[1], createGuis, enableGui );
+	loadNextSet();
 
 	return wu;
 
