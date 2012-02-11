@@ -315,7 +315,7 @@ var	WUG = (function( wu, three, tween ) {
 		container.addEventListener( 'mouseup', onMouseUp, false );
 		container.addEventListener( 'mouseout', onMouseOut, false );
 
-		mouseOnDown.x = -event.clientX;
+		mouseOnDown.x = - event.clientX;
 		mouseOnDown.y = event.clientY;
 
 		targetOnDown.x = target.x;
@@ -438,9 +438,9 @@ var	WUG = (function( wu, three, tween ) {
 		rotation.y += ( target.y - rotation.y ) * 0.1;
 		distance += ( distanceTarget - distance );
 
-		camera.position.x = distance * Math.sin( rotation.x ) * Math.cos(rotation.y);
+		camera.position.x = distance * Math.sin( rotation.x ) * Math.cos( rotation.y );
 		camera.position.y = distance * Math.sin( rotation.y );
-		camera.position.z = distance * Math.cos( rotation.x ) * Math.cos(rotation.y);
+		camera.position.z = distance * Math.cos( rotation.x ) * Math.cos( rotation.y );
 
 		ctarget.y = -camera.position.y / 10; 
 

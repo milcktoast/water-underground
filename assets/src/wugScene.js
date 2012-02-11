@@ -4,8 +4,8 @@
  */
 var WUG = (function( wu, three, tween ) {
 
-/**	Globe geometry & materials
- */
+	/** Globe geometry & materials
+	 */
 	var radius = 480;
 	var sceneObjects = {};
 
@@ -41,7 +41,7 @@ var WUG = (function( wu, three, tween ) {
 		var latitude, longitude, latPos, longPos, v0;
 		var dispAttVals = atts.displacement.value;
 		var opacAttVals = atts.opacity.value;
-		var neutralDisplacement = -radius / 2.5;
+		var neutralDisplacement = - radius / 2.5;
 		var pi = Math.PI;
 
 		for( latitude = 180; latitude > 0; latitude -- ) {
@@ -71,10 +71,10 @@ var WUG = (function( wu, three, tween ) {
 	})();
 
 
-/**	Hit box and region selection indicator
- */
+	/** Hit box and region selection indicator
+	 */
 
-	//	Macro to create regular-convex polygon
+	// Macro to create regular-convex polygon
 	function polyShape( geom, edges, radius ) {
 		var x, y, pos, first;
 		var step = Math.PI * 2 / edges;
@@ -91,7 +91,7 @@ var WUG = (function( wu, three, tween ) {
 		}
 	}
 
-	//	Hit indicator - normal
+	// Hit indicator - normal
 	(function() {
 		var geom = new three.Geometry();
 		var mat = new three.ShaderMaterial({
@@ -113,7 +113,7 @@ var WUG = (function( wu, three, tween ) {
 
 	})();
 
-	//	Hit indicator - planar
+	// Hit indicator - planar
 	(function() {
 		var geom = new three.Geometry();
 		var mat = new three.ShaderMaterial({
@@ -133,7 +133,7 @@ var WUG = (function( wu, three, tween ) {
 
 	})();
 
-	//	Hit target - spherical mesh
+	// Hit target - spherical mesh
 	(function() {
 		var sphere = new three.SphereGeometry( radius, 14, 14 );
 		var mesh = new three.Mesh( sphere, new three.MeshBasicMaterial() );
@@ -148,7 +148,6 @@ var WUG = (function( wu, three, tween ) {
 	 */
 	var camera = new three.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 100, 10000 );
 	var ambientLight = new three.AmbientLight( 0x606060 );
-
 	var scene = new three.Scene();
 
 	scene.add( camera );
