@@ -5,7 +5,7 @@ var	WUG = (function( wu, three, tween ) {
 
 	/** Initialize
 	*/
-	if( !THREE.validateWebGL() ) return false;
+	if( !three.validateWebGL() ) return false;
 
 	var state = {
 
@@ -286,6 +286,7 @@ var	WUG = (function( wu, three, tween ) {
 
 			// Geo-location
 			coords = point.sphereCoord( radius );
+			state.selection = coords;
 			console.log( coords );
 
 			// Hit polygon - planar
@@ -409,10 +410,16 @@ var	WUG = (function( wu, three, tween ) {
 	}
 
 	function update() {
-	var	counter = state.counter || 0;
+	var	pscale, counter = state.counter || 0;
 
 		counter = counter < pi ? counter + pi / 128 : 0;
 		state.counter = counter;
+
+		if( state.selection ) {
+
+			pscale = Math.sin( state.counter );
+			hitPent.scale.set( pscale, pscale, 1 );
+		}
 	}
 
 	function zoom( delta ) {
@@ -425,9 +432,6 @@ var	WUG = (function( wu, three, tween ) {
 	function render() {
 
 		zoom( curZoomSpeed );
-
-		var pscale = Math.sin( state.counter );
-		hitPent.scale.set( pscale, pscale, 1 );
 
 		rotation.x += ( target.x - rotation.x ) * 0.1;
 		rotation.y += ( target.y - rotation.y ) * 0.1;

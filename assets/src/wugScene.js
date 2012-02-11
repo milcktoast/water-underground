@@ -132,6 +132,7 @@ var WUG = (function( wu, three, tween ) {
 		mat.linewidth = 4;
 		polyShape( geom, 10, 10 );
 		sceneObjects.hitPent = new three.Line( geom, mat );
+		sceneObjects.hitPent.scale.set( 0, 0, 0 );
 
 	})();
 
