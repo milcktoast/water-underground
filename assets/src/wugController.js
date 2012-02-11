@@ -384,19 +384,6 @@ var	WUG = (function( wu, three, tween ) {
 		equalizeGuis();
 	}
 
-	function toggleAbout( event ) {
-	var	isopen = state.aboutOpen || false;
-
-		if( !isopen ) addClass( aboutcon, "show" );
-		else aboutcon.className = "";
-
-		state.aboutOpen = !isopen;
-
-		if( !isopen ) container.addEventListener( 'mousedown', toggleAbout, false );
-		else container.removeEventListener( 'mousedown', toggleAbout, false );
-	}
-
-
 	/** Anmimation & rendering
 	*/
 	var scene = wu.view.scene;
@@ -460,6 +447,20 @@ var	WUG = (function( wu, three, tween ) {
 		tween.update();
 	}
 
+	/** About panel
+	 */
+	function toggleAbout( event ) {
+	var	isopen = state.aboutOpen || false;
+
+		if( !isopen ) addClass( aboutcon, "show" );
+		else aboutcon.className = "";
+
+		state.aboutOpen = !isopen;
+
+		if( !isopen ) container.addEventListener( 'mousedown', toggleAbout, false );
+		else container.removeEventListener( 'mousedown', toggleAbout, false );
+	}
+
 	/** Prompt download of arbitrary text content
 	 */
 	function exportText( text ) {
@@ -469,7 +470,7 @@ var	WUG = (function( wu, three, tween ) {
 
 	/** Public
 	 */
-	wu.state = state;
+	//wu.state = state;
 
 	/** Initial load
 	 */
