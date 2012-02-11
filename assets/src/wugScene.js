@@ -54,8 +54,8 @@ var WUG = (function( wu, three, tween ) {
 
 				v0 = new three.Vector3(
 					radius * Math.cos( longPos ) * Math.sin( latPos ), // x
-					radius * Math.sin( longPos ) * Math.sin( latPos ), // y
-					radius * Math.cos( latPos ) // z
+					radius * Math.cos( latPos ), // y
+					radius * Math.sin( longPos ) * Math.sin( latPos ) // z
 				);
 
 				geom.vertices.push( new three.Vertex( v0 ) );
