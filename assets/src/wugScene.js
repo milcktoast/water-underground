@@ -11,9 +11,7 @@ var WUG = (function( wu, three, tween ) {
 
 	/** Establish sphere vertices
 	 */
-	var globeAtts, updateGlobe;
-
-	(function( line, atts, update ) {
+	(function() {
 		var geom = new three.Geometry();
 
 		// Material custom attributes, array of floats
@@ -67,22 +65,10 @@ var WUG = (function( wu, three, tween ) {
 			}
 		}
 
-		line = new three.Line( geom, mat );
-		line.dynamic = true;
+		sceneObjects.globe = new three.Line( geom, mat );
+		sceneObjects.globe.dynamic = true;
 
-		/** Update displacement and opacity
-		 */
-		function update( displacement, opacity ) {
-
-			dispAttVals = displacement;
-			opacAttVals = opacity;
-
-			// flag updates
-			atts.displacement.needsUpdate = true;
-			atts.opacity.needsUpdate = true;
-		}
-
-	})( sceneObjects.globe, globeAtts, updateGlobe );
+	})();
 
 
 /**	Hit box and region selection indicator
@@ -106,7 +92,7 @@ var WUG = (function( wu, three, tween ) {
 	}
 
 	//	Hit indicator - normal
-	(function( line ) {
+	(function() {
 		var geom = new three.Geometry();
 		var mat = new three.ShaderMaterial({
 
@@ -123,12 +109,12 @@ var WUG = (function( wu, three, tween ) {
 		mat.linewidth = 2;
 		geom.vertices = [ new three.Vertex(), new three.Vertex() ];
 
-		line = new three.Line( geom, mat );
+		sceneObjects.hitLine = new three.Line( geom, mat );
 
-	})( sceneObjects.hitLine );
+	})();
 
 	//	Hit indicator - planar
-	(function( line ) {
+	(function() {
 		var geom = new three.Geometry();
 		var mat = new three.ShaderMaterial({
 
@@ -143,18 +129,19 @@ var WUG = (function( wu, three, tween ) {
 		});
 
 		polyShape( geom, 10, 10 );
-		line = new three.Line( geom, mat );
+		sceneObjects.hitPent = new three.Line( geom, mat );
 
-	})( sceneObjects.hitPent );
+	})();
 
 	//	Hit target - spherical mesh
-	(function( mesh ) {
+	(function() {
 		var sphere = new three.SphereGeometry( radius, 14, 14 );
-
-		mesh = new three.Mesh( sphere, new three.MeshBasicMaterial() );
+		var mesh = new three.Mesh( sphere, new three.MeshBasicMaterial() );
 		mesh.visible = false;
 
-	})( sceneObjects.hitTarget );
+		sceneObjects.hitTarget = mesh;
+
+	})();
 
 
 	/** 3D scene
@@ -169,7 +156,7 @@ var WUG = (function( wu, three, tween ) {
 
 	for( var name in sceneObjects ) {
 
-		if( !sceneObjects[ name ].hasOwnProperty( name )) continue;
+		//if( !sceneObjects[ name ].hasOwnProperty( name )) continue;
 		scene.add( sceneObjects[ name ]);
 	}
 
@@ -180,7 +167,7 @@ var WUG = (function( wu, three, tween ) {
 
 		"scene": scene,
 		"camera": camera,
-		"objects": sceneObjects,
+		"objects": sceneObjects
 	};
 
 	return wu;

@@ -1,8 +1,7 @@
 /**	
  *	WUG Controller
  */
-var	WUG = (function( wu, three ) {
-
+var	WUG = (function( wu, three, tween ) {
 
 	/** Initialize
 	*/
@@ -71,15 +70,38 @@ var	WUG = (function( wu, three ) {
 	/** User Interaction / selection of datasets
 	 */
 	var guis = [];
+	var months = {
+		"01":"January",
+		"02":"February",
+		"03":"March",
+		"04":"April",
+		"05":"May",
+		"06":"June",
+		"07":"July",
+		"08":"August",
+		"09":"September",
+		"10":"October",
+		"11":"November",
+		"12":"December"
+	};
 
+	/** Update UI and visualization
+	 */
 	function updateGuis( event ) {
 		var node = this, currNode = state.currentNode || node, wait;
 		var newSet = node.getAttribute( 'data-date' );
+		var currSet = state.currentSet;
 
 		if( !newSet ) return false;
+		if( !currSet ) currSet = "current";
 
-		node.addEventListener( 'mouseout', onGuiMouseOut, false );
-		wait = setTimeout( updateDataState, 200 );
+		// Throttle mouseover events
+		if( event && event.type == "mouseover" ) {
+
+			node.addEventListener( 'mouseout', onGuiMouseOut, false );
+			wait = setTimeout( updateDataState, 200 );
+
+		} else updateDataState();
 
 		function onGuiMouseOut( event ) {
 
@@ -87,8 +109,10 @@ var	WUG = (function( wu, three ) {
 			cleanEvents();
 		}
 
+		/** Update UI and begin tween to new dataset
+		 */
 		function updateDataState() {
-			var nameParts = name.split('-');
+			var nameParts = newSet.split('-');
 
 			removeClass( currNode, 'active' );
 			addClass( node, 'active' );
@@ -96,9 +120,23 @@ var	WUG = (function( wu, three ) {
 
 			namecon.textContent = months[ nameParts[1] ] +" "+ nameParts[0];
 
-			wu.model.tweenTo( state.currentSet, newSet, wu.updateDisplacement );
+			wu.model.tweenTo( currSet, newSet, updateGlobeAtts );
 			state.currentNode = node;
 			state.currentSet = newSet;
+		}
+
+		/** Update displacement and opacity
+		 */
+		var globeAtts = wu.view.objects.globe.material.attributes;
+
+		function updateGlobeAtts( displacement, opacity ) {
+
+			globeAtts.displacement.value = displacement;
+			globeAtts.opacity.value = opacity;
+
+			// flag updates
+			globeAtts.displacement.needsUpdate = true;
+			globeAtts.opacity.needsUpdate = true;
 		}
 
 		function cleanEvents() {
@@ -138,7 +176,7 @@ var	WUG = (function( wu, three ) {
 
 	/** Data for element is loaded, enable interaction
 	 */
-	function enableGui( name ) {
+	function enableGui( name, loaded, loading ) {
 		var elem = document.getElementById( "month-"+ name );
 
 		if( elem ) {
@@ -146,20 +184,29 @@ var	WUG = (function( wu, three ) {
 			elem.setAttribute( 'class', 'loaded' );
 			elem.addEventListener( 'mouseover', updateGuis );
 		}
+
+		if( loaded == 1 ) {
+
+			animate();
+			updateGuis.call( elem );
+		}
+
+		if( loaded == loading ) document.body.className = "loaded";
 	}
 
 	/** Load next data set
 	 */
 	function loadNextSet() {
-		var currYear = state.currentSet || wu.model.range[1].year;
-		var nextYear = currYear - 1;
+		var currYear = state.currentSet;
+		var nextYear = !currYear ? wu.model.range[1].year : currYear.split('-')[0] - 1;
 
-		if( !nextYear >= wu.model.range[0].year ) {
+		if( nextYear < wu.model.range[0].year ) {
 
 			state.fullyLoaded = true;
 			return false;
 		}
 
+		document.body.className = "loading";
 		wu.model.loadData( nextYear, createGuis, enableGui );
 	}
 
@@ -178,25 +225,25 @@ var	WUG = (function( wu, three ) {
 
 				keys.ctrl = true;
 			break;
-			case 39 : // <
+			case 39 : // >
 
 				node = curr.previousSibling;
-				dir = "prev";
+				dir = "next";
 			break;
-			case 37 : // >
+			case 37 : // <
 
 				node = curr.nextSibling;
-				dir = "next";
+				dir = "prev";
 			break;
 		}
 
-		if( node !== undefined ) {
+		if( node ) {
 
 			updateGuis.call( node, event );
 
 		} else if( dir == "prev" && !state.fullyLoaded ) {
 
-			
+			loadNextSet();
 		}
 	}
 
@@ -223,7 +270,7 @@ var	WUG = (function( wu, three ) {
 		var vector, ray, intersects;
 		var point, coords, dir, verts, v0, v1;
 
-		vector = new three.Vector3( ( mouseOnDown.x / window.innerWidth ) * 2 - 1, - ( mouseOnDown.y / window.innerHeight ) * 2 + 1, 0.5 );
+		vector = new three.Vector3( ( -mouseOnDown.x / window.innerWidth ) * 2 - 1, - ( mouseOnDown.y / window.innerHeight ) * 2 + 1, 0.5 );
 		projector.unprojectVector( vector, wu.camera );
 
 		ray = new three.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
@@ -268,7 +315,7 @@ var	WUG = (function( wu, three ) {
 		container.addEventListener( 'mouseup', onMouseUp, false );
 		container.addEventListener( 'mouseout', onMouseOut, false );
 
-		mouseOnDown.x = event.clientX;
+		mouseOnDown.x = -event.clientX;
 		mouseOnDown.y = event.clientY;
 
 		targetOnDown.x = target.x;
@@ -289,7 +336,7 @@ var	WUG = (function( wu, three ) {
 
 		var zoomDamp = distance / 1000;
 
-		target.x = targetOnDown.x + ( mouse.x + mouseOnDown.x ) * 0.005 * zoomDamp;
+		target.x = targetOnDown.x + ( mouse.x - mouseOnDown.x ) * 0.005 * zoomDamp;
 		target.y = targetOnDown.y + ( mouse.y - mouseOnDown.y ) * 0.005 * zoomDamp;
 
 		target.y = target.y > pihalf ? pihalf : target.y;
@@ -357,6 +404,7 @@ var	WUG = (function( wu, three ) {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	container.appendChild( renderer.domElement );
 
+	var hitPent = wu.view.objects.hitPent;
 
 	function animate() {
 
@@ -421,5 +469,5 @@ var	WUG = (function( wu, three ) {
 
 	return wu;
 
-})( WUG || {}, THREE );
+})( WUG || {}, THREE, TWEEN );
 

@@ -1,9 +1,17 @@
 /**
  *	WUG Model / data interaction bits
  */
-var WUG = (function( wu ) {
+var WUG = (function( wu, tween ) {
 
-	var data = {}, opacity = {}, peaks = {};
+	var data = {
+
+		"current": wu.view.objects.globe.material.attributes.displacement.value
+	};
+	var opacity = {
+
+		"current": wu.view.objects.globe.material.attributes.opacity.value
+	};
+	var peaks = {};
 	var loading = 0, loaded = 0;
 
 	/** Load data by year, data available for April 2002 - May 2011
@@ -50,7 +58,7 @@ var WUG = (function( wu ) {
 					json = JSON.parse( xhr.responseText );
 					parseData( name, json.data );
 
-					if( callback ) callback( name );
+					if( callback ) callback( name, loaded, loading );
 				}
 			}
 		};
@@ -81,9 +89,10 @@ var WUG = (function( wu ) {
 		var edata = data[ from ], eopac = opacity[ from ];
 		var ndata = data[ to ], nopac = opacity[ to ];
 		var diffD = [], diffO = [], stage = { d: 0 };
+		var dlength = ndata.length;
 
 		// Calculate difference between future and existing values
-		for( var i = 0, il = dispAttVals.length; i < il; i ++ ) {
+		for( var i = 0; i < dlength; i ++ ) {
 
 			diffD[ i ] = ndata[ i ] - edata[ i ];
 			diffO[ i ] = nopac[ i ] - eopac[ i ];
@@ -97,7 +106,7 @@ var WUG = (function( wu ) {
 			var cstage = stage.d;
 			var displacement = [], opacity = [];
 
-			for( i = 0; i < vtl; i ++ ) {
+			for( i = 0; i < dlength; i ++ ) {
 
 				displacement.push( edata[ i ] + diffD[ i ] * cstage );
 				opacity.push( eopac[ i ] + diffO[ i ] * cstage );
@@ -109,6 +118,8 @@ var WUG = (function( wu ) {
 
 			//console.log( 'complete' );
 		});
+
+		dispTween.start();
 	}
 
 
@@ -188,5 +199,5 @@ var WUG = (function( wu ) {
 
 	return wu;
 
-})( WUG || {} );
+})( WUG || {}, TWEEN );
 
