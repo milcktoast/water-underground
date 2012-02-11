@@ -265,13 +265,17 @@ var	WUG = (function( wu, three, tween ) {
 	/** User interaction with 3D scene
 	 */
 	var projector = new three.Projector();
+	var sceneObjects = wu.view.objects;
+	var radius = sceneObjects.globe.radius;
 
 	function intersectScene( event ) {
 		var vector, ray, intersects;
 		var point, coords, dir, verts, v0, v1;
+		var hitPent = sceneObjects.hitPent;
+		var hitLine = sceneObjects.hitLine;
 
-		vector = new three.Vector3( ( -mouseOnDown.x / window.innerWidth ) * 2 - 1, - ( mouseOnDown.y / window.innerHeight ) * 2 + 1, 0.5 );
-		projector.unprojectVector( vector, wu.camera );
+		vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
+		projector.unprojectVector( vector, camera );
 
 		ray = new three.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
 		intersects = ray.intersectScene( scene );
@@ -279,20 +283,24 @@ var	WUG = (function( wu, three, tween ) {
 		if( intersects.length > 0 ) {
 
 			point = intersects[0].point;
+
+			// Geo-location
 			coords = point.sphereCoord( radius );
 			console.log( coords );
 
-			verts = hitLineGeom.vertices;
+			// Hit polygon - planar
+			hitPent.position.copy( point );
+			hitPent.lookAt( new three.Vector3( 0, 0, 0 ));
+
+			// Hit line - normal
 			dir = point.clone().normalize();
 			v0 = dir.clone().multiplyScalar( 10000 );
 			v1 = dir.clone().multiplyScalar( 350 );
 
-			hitPent.position.copy( point );
-			hitPent.lookAt( new three.Vector3( 0, 0, 0 ));
-
+			verts = hitLine.geometry.vertices;
 			verts[0].position = v0;
 			verts[1].position = v1;
-			hitLineGeom.__dirtyVertices = true;
+			hitLine.geometry.__dirtyVertices = true;
 		}
 	}
 

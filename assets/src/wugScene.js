@@ -67,6 +67,7 @@ var WUG = (function( wu, three, tween ) {
 
 		sceneObjects.globe = new three.Line( geom, mat );
 		sceneObjects.globe.dynamic = true;
+		sceneObjects.globe.radius = radius;
 
 	})();
 
@@ -128,6 +129,7 @@ var WUG = (function( wu, three, tween ) {
 			depthTest: false
 		});
 
+		mat.linewidth = 4;
 		polyShape( geom, 10, 10 );
 		sceneObjects.hitPent = new three.Line( geom, mat );
 
