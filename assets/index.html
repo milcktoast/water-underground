@@ -60,11 +60,10 @@
 		varying float fade;
 
 		 void main() {
-
 			vDisplace = -displacement;
 			fade = opacity;
 			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) * displacement * 2.5 ), 1.0 );
-		 }
+		}
 
 	</script>
 	<script id="fs-geo" type="x-shader/x-fragment">
@@ -73,7 +72,6 @@
 		varying float fade;
 
 		void main() {
-
 			float depth = gl_FragCoord.z;
 
 			gl_FragColor = vec4(
@@ -82,32 +80,30 @@
 				smoothstep( 30.0, -30.0, vDisplace ),
 				smoothstep( 0.97, 0.90, depth ) * 0.9 * fade
 			);
-		 }
+		}
 
 	</script>
 	<script id="vs-pin" type="x-shader/x-vertex">
 
 		 void main() {
-
 			gl_Position = projectionMatrix * modelViewMatrix * vec4( position + ( normalize( position ) ), 1.0 );
-		 }
+		}
 
 	</script>
 	<script id="fs-pin" type="x-shader/x-fragment">
 
 		void main() {
-
 			float depth = gl_FragCoord.z;
 
 			gl_FragColor = vec4(
 				1.0, 1.0, 1.0,
 				smoothstep( 0.97, 0.90, depth )
 			);
-		 }
+		}
 
 	</script>
 
-	<script type="text/javascript" src="js/three.js/r47/ThreeWebGL.js"></script>
+	<script type="text/javascript" src="js/three.js/r64/three-webgl.js"></script>
 	<script type="text/javascript" src="js/Tween.js"></script>
 	<script type="text/javascript" src="WaterUnderground.min.js"></script>
 
@@ -118,7 +114,6 @@
 	<script type="text/javascript" src="src/wugModel.js"></script>
 	<script type="text/javascript" src="src/wugController.js"></script>
 -->
-
 
 </body>
 </html>

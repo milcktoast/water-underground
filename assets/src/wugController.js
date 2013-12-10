@@ -5,7 +5,7 @@ var	WUG = (function( wu, three, tween ) {
 
 	/** Initialize
 	*/
-	if( !three.validateWebGL() ) return false;
+	// if( !three.validateWebGL() ) return false;
 
 	var state = {
 
@@ -299,9 +299,9 @@ var	WUG = (function( wu, three, tween ) {
 			v1 = dir.clone().multiplyScalar( 350 );
 
 			verts = hitLine.geometry.vertices;
-			verts[0].position = v0;
-			verts[1].position = v1;
-			hitLine.geometry.__dirtyVertices = true;
+			verts[0].copy(v0);
+			verts[1].copy(v1);
+			// hitLine.geometry.__dirtyVertices = true;
 		}
 	}
 

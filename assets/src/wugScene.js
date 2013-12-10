@@ -32,6 +32,7 @@ var WUG = (function( wu, three, tween ) {
 			vertexShader: document.getElementById( 'vs-geo' ).textContent,
 			fragmentShader: document.getElementById( 'fs-geo' ).textContent,
 
+			transparent: true,
 			depthTest: false
 		});
 
@@ -58,7 +59,7 @@ var WUG = (function( wu, three, tween ) {
 					radius * Math.sin( longPos ) * Math.sin( latPos ) // z
 				);
 
-				geom.vertices.push( new three.Vertex( v0 ) );
+				geom.vertices.push( v0 );
 				dispAttVals.push( neutralDisplacement );
 				opacAttVals.push( 0.0 );
 
@@ -88,7 +89,7 @@ var WUG = (function( wu, three, tween ) {
 			pos = i < edges ? new three.Vector3( x, y, 0 ) : first;
 			if( i === 0 ) first = pos;
 
-			geom.vertices.push( new three.Vertex( pos ) );
+			geom.vertices.push( pos );
 		}
 	}
 
@@ -108,7 +109,7 @@ var WUG = (function( wu, three, tween ) {
 		});
 
 		mat.linewidth = 2;
-		geom.vertices = [ new three.Vertex(), new three.Vertex() ];
+		geom.vertices = [ new three.Vector3(), new three.Vector3() ];
 
 		sceneObjects.hitLine = new three.Line( geom, mat );
 
@@ -155,12 +156,14 @@ var WUG = (function( wu, three, tween ) {
 
 	scene.add( camera );
 	scene.add( ambientLight );
+	scene.add( sceneObjects.globe );
 
 	for( var name in sceneObjects ) {
 
 		//if( !sceneObjects[ name ].hasOwnProperty( name )) continue;
-		scene.add( sceneObjects[ name ]);
+		// scene.add( sceneObjects[ name ]);
 	}
+
 
 
 	/** Publicly accessible
