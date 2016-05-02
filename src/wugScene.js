@@ -15,7 +15,7 @@ var WUG = (function( wu, three, tween ) {
 		var geom = new three.Geometry();
 
 		// Material custom attributes, array of floats
-		atts = {
+		var atts = {
 
 			displacement : { type: 'f', value: [] },
 			opacity : { type: 'f', value: [] }
